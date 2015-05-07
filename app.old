@@ -1,0 +1,52 @@
+{
+  "sdkVersion": "3",
+  "appKeys": {
+    "KEY_POWER": 116,
+    "KEY_VOLUP": 115,
+    "KEY_VOLDOWN": 114,
+    "KEY_ARRUP": 103,
+    "KEY_ARRDOWN": 108,
+    "KEY_OK": 352,
+    "KEY_EXIT": 1,
+    "KEY_INFO": 358,
+    "KEY_CONTROL": 1000,
+    "KEY_IP": 1001,
+    "KEY_ACCEL": 1002
+  },
+  "capabilities": [
+    "configurable"
+  ],
+  "companyName": "k.roemke@googlemail.com",
+  "longName": "EnigmaVU",
+  "projectType": "native",
+  "resources": {
+    "media": [
+      {
+        "file": "images/14px-power.png",
+        "name": "pngPower",
+        "type": "png"
+      },
+      {
+        "file": "images/14px-Vista-kmixdocked_mute.png",
+        "name": "pngVolume",
+        "type": "png"
+      },
+      {
+        "file": "images/14px-updown.png",
+        "name": "pngUpDown",
+        "type": "png"
+      }
+    ]
+  },
+  "shortName": "EnigmaVU",
+  "uuid": "32ae1094-5971-425e-8a3d-3c2958e2f1cc",
+  "versionCode": 1.2,
+  "versionLabel": "1.2",
+  "watchapp": {
+    "watchface": false
+  },
+  "targetPlatforms": [
+    "aplite",
+    "basalt"
+  ]
+}

@@ -1,0 +1,9 @@
+void initCommunication(void);
+void sendPower();
+void sendPower();
+void sendVolUp();
+void sendVolDown();
+void sendArrowUp();
+void sendArrowDown();
+void sendOK();
+void sendExit();

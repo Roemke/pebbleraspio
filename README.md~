@@ -1,0 +1,27 @@
+
+Raspberry Radio - Remote control
+==========================================
+
+A simple remote Control for a Radio Project on 
+Raspberry PI
+
+
+Left / Back - go back one level. 
+
+Upper Button: Sends Program Up  
+Middle / Select Button switch to Program
+Middle Button / Select: If your are not in Arrow Mode or
+in Volume Mode, this sends the power on/off signal to
+the receiver.
+
+Lower Button. Sends Volume down to receiver.
+With the up/down Buttons you can control the Volume.
+Middle Button leaves this mode (back button also leaves).
+
+If you choose acceleration sensor in config, you can
+control the movement of volume and station by turning
+your wrist. Turn forward means down, backwards is up.
+This is somewhat experimental ...
+ 
+The enigmavu control is integrated cause I use both
+

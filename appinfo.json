@@ -1,0 +1,48 @@
+{
+  "uuid": "ba5d0e57-1b34-45b7-845a-51c4d517aecc",
+  "shortName": "raspio",
+  "longName": "raspio",
+  "companyName": "k.roemke@googlemail.com",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "sdkVersion": "3",
+  "targetPlatforms": ["aplite", "basalt"],
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "KEY_POWER": 116,
+    "KEY_VOLUP": 115,
+    "KEY_VOLDOWN": 114,
+    "KEY_ARRUP": 103,
+    "KEY_ARRDOWN": 108,
+    "KEY_OK": 352,
+    "KEY_EXIT": 1,
+    "KEY_INFO": 358,
+    "KEY_CONTROL": 1000,
+    "KEY_IP": 1001,
+    "KEY_ACCEL": 1002
+  },
+  "capabilities": [
+    "configurable"
+  ],
+  "resources": {
+    "media": [
+      {
+        "file": "images/14px-power.png",
+        "name": "pngPower",
+        "type": "png"
+      },
+      {
+        "file": "images/14px-Vista-kmixdocked_mute.png",
+        "name": "pngVolume",
+        "type": "png"
+      },
+      {
+        "file": "images/14px-updown.png",
+        "name": "pngUpDown",
+        "type": "png"
+      }
+    ]
+  }
+}
