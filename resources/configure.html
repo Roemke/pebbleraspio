@@ -5,7 +5,7 @@
 	<!-- Basic Page Needs
 	================================================== -->
 	<meta charset="utf-8">
-	<title>Configure EnigmaVu</title>
+	<title>Configure Raspio/EnigmaVU</title>
 	<meta name="description" content="configuration of EnigmaVu Control a Pebble watchapp">
 
 	<!-- Mobile Specific Metas
@@ -45,6 +45,9 @@
 		.fullwidth {
 			width: 100%;
 		}
+		#vuipInput , #raspipInput {
+			display: 	none;
+		}
 	</style>
 	<!-- change it to own hosted jquery script -->
 	<script type="text/javascript">
@@ -60,28 +63,45 @@
 		//#config array to options object
 		var options =
 		{
-			ip:		params.ip ,
-			accel:	params.accel === 'on',
+			vuip:		params.vuip ,
+			raspip: params.raspip,
 		};
+		options.vu =	 (params.vu === 'on' ? true : false);
+		options.raspio = (params.raspio === 'on' ? true : false);
+		options.accel  = (params.accel === 'on' ? true : false);
 		return options;
 	}
 
-//first called
 	function applyOptions() {
-	//all but timetableSettings
 		var $form	= $('#config');
 		var opts	= getObject.options;
 		//console.log(opts);
 		//$('#out').append(JSON.stringify(opts));
 		//options coming from caller of this page - stored on phone I think,
-		//yes, call is coming from pebble-js-app
-		if (opts && opts.ip) {
-			//console.log("try to set ip");
-			//console.log("found: " + $form.find('[name="ip"]'));
-			$form.find('[name="ip"]').val(opts.ip);
-		}
-		if (opts && opts.accel) {
-			$form.find('[name="accel"]').prop('checked', true).checkboxradio('refresh');
+		//yes, call is coming from pebble-js-app via get
+		if (opts)
+		{
+			if (opts.vu) 
+			{
+				$('#vuipInput').fadeIn('fast');
+				$('#idVu').prop('checked',true).checkboxradio('refresh');;
+			}
+			if (opts.raspio)
+			{
+				$('#raspipInput').fadeIn('fast');
+				$('#idRaspio').prop('checked',true).checkboxradio('refresh');;
+			}
+			if (opts.raspip){
+				$form.find('[name="raspip"]').val(opts.raspip);
+			}
+			if (opts.vuip) {
+				//console.log("try to set ip");
+				//console.log("found: " + $form.find('[name="ip"]'));
+				$form.find('[name="vuip"]').val(opts.vuip);
+			}
+			if (opts.accel) {
+				$form.find('[name="accel"]').prop('checked', true).checkboxradio('refresh');
+			}
 		}
 	}
 function versionCheck()
@@ -141,24 +161,50 @@ $(document).on('pagecreate','#optionPage', function() {
 	
 	//ttpage timetablepage vorbereiten
 	//----------------------------
+	//virtualizec click handler on mobile devices see jquery mobile
 	$(document).on("vclick",".b-submit",function() {
-	  try {
-			var jsonAsString = JSON.stringify(optionsToObject());
-			var location = jsonAsString;
-			location = "pebblejs://close#" + encodeURIComponent(location);
-		 	//console.log(location);
-		 	document.location = location;
-		}
-		catch (err){
-		  $('#out').removeClass('bg-info').addClass('bg-danger');
-			$('#out').html("There was a problem with encode - strange" +
-			err + "<br> Settings are not saved");
+	  var options = optionsToObject();
+	  //console.log(options);return;
+	  if (! options.vu && ! options.raspio)
+	  {
+	  	$('#out').removeClass('bg-info').addClass('bg-danger');
+	  	$('#out').html("you need at least one of Raspio or Vu");
+	  }
+	  else
+	  {
+		  try {
+				var jsonAsString = JSON.stringify(options);
+				var location = jsonAsString;
+				location = "pebblejs://close#" + encodeURIComponent(location);
+			 	//console.log(location);
+			 	document.location = location;
+			}
+			catch (err){
+			  $('#out').removeClass('bg-info').addClass('bg-danger');
+				$('#out').html("There was a problem with encode - strange" +
+				err + "<br> Settings are not saved");
+			}
 		}
 	});
 	$(document).on("vclick",".b-cancel",function() {
 		var location = "pebblejs://close";
 		document.location = location;
 	});
+	$('#idRaspio').change(function()
+	{
+		if ($(this).prop('checked'))
+			$('#raspipInput').fadeIn('fast');
+		else	
+			$('#raspipInput').fadeOut('fast');
+	});
+	$('#idVu').change(function()
+	{
+		if ($(this).prop('checked'))
+			$('#vuipInput').fadeIn('fast');
+		else	
+			$('#vuipInput').fadeOut('fast');
+	});
+		
 });
 	</script>
 
@@ -170,10 +216,11 @@ $(document).on('pagecreate','#optionPage', function() {
  	 ================================================= -->
 	<div data-role="page" id="optionPage">
 		<div data-role="header">
-			<h1>Configure EnigmaVu Control</h1>
+			<h1>Configure EnigmaVu / RaspiRadio Control</h1>
 			Configuration utility for Enigma(?) and Vu+ Solo / Duo remote control.
 		</div>
 		<div data-role="content">
+			<div id="out"></div>
 			<div id="update-available" class="hidden bg-danger">
                 Maybe there  is a new version (your version: <span
                 class="versionString">  </span>) of EnigmaVu Control
@@ -182,23 +229,34 @@ $(document).on('pagecreate','#optionPage', function() {
             </div>
 
             <div id="up-to-date" class="hidden bg-info" >
-	            Your version <span class="versionString"> </span> of EnigmaVu Control is up-to-date.
+	            Your version <span class="versionString"> </span> of EnigmaVu/Raspberry Radio  Control is up-to-date.
 	            <a rel="external" href="CHANGES.html">See changes</a>
             </div>
 			<form id="config">
 					<legend style="margin-top:5px;">
 						Options:
 					</legend>
-						<label for="idaccel">switch on control by acceleration sensor (not yet implemented, maybe later)</label>
-						<input type="checkbox" name="accel" id="idaccel" value="on" />
-							
+						<label for="idAccel">switch on control by acceleration sensor</label>
+						<input type="checkbox" name="accel" id="idAccel" value="on" />
+						
+						<label for="idRaspio">Control Raspio</label>	
+						<input type="checkbox" name="raspio" id="idRaspio" value="on" />
+						<div id="raspipInput">	
+							<label for="idRaspIp">ip-address of your Raspberry Radio</label>
+							<input type="text" name="raspip" id="idRaspIp" value="192.168.2.200">
+						</div>	
+
+						<label for="idVu">Control Vu+</label>	
+						<input type="checkbox" name="vu" id="idVu" value="on" />
 						<!-- look for
 						jQuery(function($){
-						   $("#idipinput").mask("9?99.9?99.9?99.9?99", {placeholder:" "});
+						   $("#idVuIpInput").mask("9?99.9?99.9?99.9?99", {placeholder:" "});
 						   }); 
 						-->
-							<label for="idip">ip-address of your Receiver Box</label>
-							<input type="text" name="ip" id="idip" value="192.168.2.202">
+						<div id="vuipInput">
+							<label for="idVuIp">ip-address of your Receiver Box</label>
+							<input type="text" name="vuip" id="idVuIp" value="192.168.2.202">
+						</div>
 			</form>
 		</div><!-- data-role content -->
 		<div data-role="footer" data-position="fixed">

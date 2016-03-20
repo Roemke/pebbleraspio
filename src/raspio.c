@@ -4,12 +4,17 @@
 #include "globals.h"
 
 bool accel = false;
+bool vu = true; // vu control on
+bool raspio = true; //raspberry control on
+
 
 void handle_init(void) {
 	if (persist_exists(KEY_ACCEL))
-	{
 		accel = persist_read_bool(KEY_ACCEL);
-	}
+	if (persist_exists(KEY_VU))
+		vu = persist_read_bool(KEY_VU);
+	if (persist_exists(KEY_RASPIO))
+		vu = persist_read_bool(KEY_RASPIO);
 
 	initCommunication();
 	show_control();//creates s_window and layers

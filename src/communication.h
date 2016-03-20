@@ -7,3 +7,4 @@ void sendArrowUp();
 void sendArrowDown();
 void sendOK();
 void sendExit();
+void sendNewDevice();

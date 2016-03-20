@@ -20,8 +20,12 @@
     "KEY_EXIT": 1,
     "KEY_INFO": 358,
     "KEY_CONTROL": 1000,
-    "KEY_IP": 1001,
-    "KEY_ACCEL": 1002
+    "KEY_VUIP": 1001,    
+    "KEY_ACCEL": 1002,
+    "KEY_RASPIO": 1003,
+    "KEY_VU": 1004,   
+    "KEY_RASPIP": 1005,
+    "KEY_DEVICE" : 1006
   },
   "capabilities": [
     "configurable"

@@ -1,4 +1,4 @@
-//codes needed here and in c-programm
+//codes needed here and in js programs
 //seems to be neccessary but not nice
 //codes for the vuplus
 #define KEY_POWER 116
@@ -9,13 +9,18 @@
 #define KEY_OK  352
 #define KEY_INFO  358
 #define KEY_EXIT  1
-//codes for communication
+
+//codes for settings
 #define KEY_CONTROL  1000
-#define KEY_IP  1001 // IP address of satellite receiver, not really needed
+#define KEY_VUIP  1001 // IP address of satellite receiver, not really needed js app knows it
 #define KEY_ACCEL  1002	 //use acceleration sensor for control
-
-
-extern bool accel; //type bool is defined in pebble.h
+#define KEY_RASPIO  1003
+#define KEY_VU 1004
+#define KEY_RASPIP 1005
+#define KEY_DEVICE 1006 //send this together with new device KEY_VU or KEY_RASPIO
+extern bool accel; //type bool is defined in pebble.h, acceleration on
+extern bool vu; // vu control on
+extern bool raspio; //raspberry control on
 enum Devices
 {
   Vu 			= 0,

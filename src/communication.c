@@ -3,7 +3,8 @@
 #include "globals.h"
 
 
-extern bool accel;
+
+extern uint8_t device;
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   Tuple *t = dict_read_first(iterator);
@@ -12,8 +13,21 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   while (t != NULL) {
 	switch (t->key)
     {
-    case KEY_IP :
-    	APP_LOG(APP_LOG_LEVEL_INFO, "received message with ip %s ", (char *) t->value->cstring) ;
+    case KEY_VU:
+    	APP_LOG(APP_LOG_LEVEL_INFO, "received message with vu %d ", (int) t->value->uint8) ;
+    	vu = t->value->uint8 == 1;
+    	persist_write_bool(KEY_VU,vu);
+    	break;
+    case KEY_VUIP :
+    	APP_LOG(APP_LOG_LEVEL_INFO, "received message with vu ip %s ", (char *) t->value->cstring) ;
+    	break;
+    case KEY_RASPIO:
+    	APP_LOG(APP_LOG_LEVEL_INFO, "received message with raspio %d ", (int) t->value->uint8) ;
+    	raspio = t->value->uint8 == 1;
+    	persist_write_bool(KEY_RASPIO,raspio);
+    	break;
+    case KEY_RASPIP:
+    	APP_LOG(APP_LOG_LEVEL_INFO, "received message with rasp ip %s", (char *) t->value->cstring) ;
     	break;
     case KEY_ACCEL:
     	APP_LOG(APP_LOG_LEVEL_INFO, "received message with accel %d ", (int) t->value->uint8) ;
@@ -40,6 +54,19 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 //send key to phone
 static void sendSignal(int key)
 {
+  //special key new device
+  if (key == KEY_DEVICE)
+  {
+	  switch (device)
+	  {
+	  case Vu:
+		  key = KEY_VU;
+		  break;
+	  case RaspiRadio:
+		  key = KEY_RASPIO;
+		  break;
+	  }
+  }
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);
   if (iter == NULL) {
@@ -60,6 +87,7 @@ void sendArrowUp(){sendSignal(KEY_ARRUP);}
 void sendArrowDown(){sendSignal(KEY_ARRDOWN);}
 void sendOK(){sendSignal(KEY_OK);}
 void sendExit(){sendSignal(KEY_EXIT);}
+void sendNewDevice(){sendSignal(KEY_DEVICE);}
  
 void initCommunication(void)
 {

@@ -16,21 +16,20 @@ static TextLayer *tl_3Vol;
 static TextLayer *tl_2Power;
 static TextLayer *tl_Ident;
 //------------------------------------
-static char * textPower = "Power";
 static char * textVol = "Volume";
-static char * textArrow = "Program";
+static char * textProgram = "Program";
 static char * textUp = "Up";
 static char * textDown = "Down";
 static char * textOK = "OK";
-static char * textIdVu="V\nu\n+";
-static char * textIdRaspi="R\na\ns\nP\ni\no";
+static char * textPower;
+static char * textId;
 //------------------------------
 
-uint8_t device = 0; //start with the vu+
+uint8_t device = RaspiRadio; //start with the Radio need more often / koennte man auch configurierbar machen
 
 enum Modes {
   none=0, 
-  arrow=1, 
+  program=1,
   volume=2 
 };
 enum AccelModes
@@ -46,10 +45,31 @@ static uint8_t accMode = accNone;
 static bool accSubscribed = false;
 AppTimer * timerScroll = 0;
 
+static void setStrings()
+{
+	static char * textPowerVu = "Power";
+	static char * textPowerRaspi = " ";
+	static char * textIdVu="V\nu\n+";
+	static char * textIdRaspi="R\na\ns\nP\ni\no";
+
+	switch (device)
+	{
+	case  RaspiRadio:
+		textPower = textPowerRaspi;
+		textId    = textIdRaspi;
+		break;
+	case Vu :
+		textPower = textPowerVu;
+		textId		= textIdVu;
+		break;
+	}
+}
 
 //window functions
 static void initialise_ui(void) {
+  setStrings();
   s_window = window_create();
+
   window_set_background_color(s_window, GColorBlack);
   //window_set_fullscreen(s_window, false); //old
   
@@ -66,11 +86,12 @@ static void initialise_ui(void) {
   action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pngvolume);
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_actionbarlayer_1);
   
+
   // tl_1Arrow
   tl_1Arrow = text_layer_create(GRect(8, 13, 100, 28));
   text_layer_set_background_color(tl_1Arrow, GColorClear);
   text_layer_set_text_color(tl_1Arrow, GColorWhite);
-  text_layer_set_text(tl_1Arrow, textArrow);
+  text_layer_set_text(tl_1Arrow, textProgram);
   text_layer_set_text_alignment(tl_1Arrow, GTextAlignmentRight);
   text_layer_set_font(tl_1Arrow, s_res_roboto_condensed_21);
   layer_add_child(window_get_root_layer(s_window), (Layer *)tl_1Arrow);
@@ -97,7 +118,7 @@ static void initialise_ui(void) {
   tl_Ident = text_layer_create(GRect(4, 7, 25, 155));
   text_layer_set_background_color(tl_Ident, GColorClear);
   text_layer_set_text_color(tl_Ident, GColorWhite);
-  text_layer_set_text(tl_Ident, textIdVu);
+  text_layer_set_text(tl_Ident, textId);
   text_layer_set_text_alignment(tl_Ident, GTextAlignmentCenter);
   text_layer_set_font(tl_Ident, s_res_roboto_condensed_21);
   layer_add_child(window_get_root_layer(s_window), (Layer *)tl_Ident);
@@ -118,9 +139,11 @@ static void destroy_ui(void) {
 
 static void resetText()
 {
-  text_layer_set_text(tl_1Arrow,textArrow);
+  setStrings(); //depends on device
+  text_layer_set_text(tl_1Arrow,textProgram);
   text_layer_set_text(tl_2Power,textPower);
   text_layer_set_text(tl_3Vol,textVol);
+  text_layer_set_text(tl_Ident,textId);
 }
 static void setAltText(char * middle)
 {
@@ -142,9 +165,9 @@ static void timerScrollRun()
 		sendVolUp();
 	else if (accMode == accDown && mode == volume)
 		sendVolDown();
-	else if (accMode == accUp && mode == arrow)
+	else if (accMode == accUp && mode == program)
 		sendArrowUp();
-	else if (accMode == accDown && mode==arrow)
+	else if (accMode == accDown && mode==program)
 		sendArrowDown();
 
 	timerScroll = 0;
@@ -224,7 +247,7 @@ static void back_single_click_handler(ClickRecognizerRef recognizer, void *conte
 			mode=none;
 			switchOffAccel();
 			break;
-		case arrow:
+		case program:
 			mode=none;
 			switchOffAccel();
 			sendExit();
@@ -238,16 +261,21 @@ static void back_single_click_handler(ClickRecognizerRef recognizer, void *conte
 //switch between them
 static void select_long_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-	switch (device)
+	if (vu && raspio) //both should be controlled
 	{
-	case Vu:
-		device = RaspiRadio;
-		text_layer_set_text(tl_Ident, textIdRaspi);
-		break;
-	case RaspiRadio:
-		device = Vu;
-		text_layer_set_text(tl_Ident, textIdVu);
-		break;
+		switch (device)
+		{
+		case Vu:
+			device = RaspiRadio;
+			break;
+		case RaspiRadio:
+			device = Vu;
+			break;
+		}
+		sendNewDevice();//device is global
+		mode = none; //just go back
+		switchOffAccel();
+		resetText();
 	}
 }
 //volume
@@ -264,12 +292,12 @@ static void down_single_click_handler(ClickRecognizerRef recognizer, void *conte
 	  case volume:
 			sendVolDown();
 			break;
-	  case arrow:
+	  case program:
 			sendArrowDown();
 			break;
 	}
 }
-//arrowramm / progs
+//up click
 static void up_single_click_handler(ClickRecognizerRef recognizer, void *context) {
   //... called on single click ...
   //Window *window = (Window *)context;	
@@ -277,7 +305,7 @@ static void up_single_click_handler(ClickRecognizerRef recognizer, void *context
 	{
   	  case none:
 			setAltText(textOK);
-			mode = arrow;
+			mode = program;
 			sendArrowDown();
 			sendArrowUp(); //back to original position 
 			if (accel)
@@ -286,7 +314,7 @@ static void up_single_click_handler(ClickRecognizerRef recognizer, void *context
 	  case volume:
 			sendVolUp();
 			break;
-	  case arrow:
+	  case program:
 
 			sendArrowUp();
 			break;
@@ -305,9 +333,10 @@ static void select_single_click_handler(ClickRecognizerRef recognizer, void *con
 			break;
 		case none:
 			switchOffAccel();
-			sendPower();
+			if (device == Vu)
+				sendPower();
 			break;
-		case arrow:
+		case program:
 			switchOffAccel();
 			sendOK();
 			break;
