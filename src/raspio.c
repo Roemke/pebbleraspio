@@ -18,7 +18,7 @@ void handle_init(void) {
 
 	initCommunication();
 	show_control();//creates s_window and layers
-  bind_clicks(); 
+    //bind_clicks();
 
 }
 

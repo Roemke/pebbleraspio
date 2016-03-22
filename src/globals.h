@@ -4,8 +4,8 @@
 #define KEY_POWER 116
 #define KEY_VOLUP  115
 #define KEY_VOLDOWN  114
-#define KEY_ARRUP  103
-#define KEY_ARRDOWN  108
+#define KEY_STATIONUP  103
+#define KEY_STATIONDOWN  108
 #define KEY_OK  352
 #define KEY_INFO  358
 #define KEY_EXIT  1
@@ -18,6 +18,10 @@
 #define KEY_VU 1004
 #define KEY_RASPIP 1005
 #define KEY_DEVICE 1006 //send this together with new device KEY_VU or KEY_RASPIO
+
+#define KEY_RASPSTATUS      1100
+#define KEY_RASPFULLSTATUS  1101
+
 extern bool accel; //type bool is defined in pebble.h, acceleration on
 extern bool vu; // vu control on
 extern bool raspio; //raspberry control on

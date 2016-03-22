@@ -51,22 +51,10 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
+
 //send key to phone
 static void sendSignal(int key)
 {
-  //special key new device
-  if (key == KEY_DEVICE)
-  {
-	  switch (device)
-	  {
-	  case Vu:
-		  key = KEY_VU;
-		  break;
-	  case RaspiRadio:
-		  key = KEY_RASPIO;
-		  break;
-	  }
-  }
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);
   if (iter == NULL) {
@@ -78,17 +66,44 @@ static void sendSignal(int key)
     dict_write_tuplet(iter, &tuple);
     dict_write_end(iter);
     app_message_outbox_send(); //ok laeuft pebble-js-app.js reagiert
-  }	
+  }
 }
 void sendPower(){sendSignal(KEY_POWER);}
 void sendVolUp(){sendSignal(KEY_VOLUP);}
 void sendVolDown(){sendSignal(KEY_VOLDOWN);}
-void sendArrowUp(){sendSignal(KEY_ARRUP);}
-void sendArrowDown(){sendSignal(KEY_ARRDOWN);}
+void sendProgramUp(){sendSignal(KEY_STATIONUP);}
+void sendProgramDown(){sendSignal(KEY_STATIONDOWN);}
 void sendOK(){sendSignal(KEY_OK);}
 void sendExit(){sendSignal(KEY_EXIT);}
-void sendNewDevice(){sendSignal(KEY_DEVICE);}
- 
+
+//send new device to phone
+void sendNewDevice()
+{
+  //special key new device
+	int key=RaspiRadio;
+	switch (device)
+	{
+	case Vu:
+	  key = KEY_VU;
+	  break;
+	case RaspiRadio:
+	  key = KEY_RASPIO;
+	  break;
+	}
+	DictionaryIterator *iter;
+	app_message_outbox_begin(&iter);
+	if (iter == NULL) {
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "null iter, can't send");
+	}
+	else
+	{
+		Tuplet tuple =  TupletInteger(KEY_DEVICE, key);
+		dict_write_tuplet(iter, &tuple);
+		dict_write_end(iter);
+		app_message_outbox_send(); //ok laeuft pebble-js-app.js reagiert
+	}
+}
+
 void initCommunication(void)
 {
   app_message_register_inbox_received(inbox_received_callback);

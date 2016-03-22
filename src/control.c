@@ -6,26 +6,35 @@
 
 // BEGIN AUTO-GENERATED UI CODE; DO NOT MODIFY
 static Window *s_window;
-static GBitmap *s_res_pngupdown;
-static GBitmap *s_res_pngpower;
-static GBitmap *s_res_pngvolume;
+static GBitmap *s_res_pngStation;
+static GBitmap *s_res_pngPower;
+static GBitmap *s_res_pngVolume;
+static GBitmap *s_res_pngBigIcon;
 static GFont s_res_roboto_condensed_21;
 static ActionBarLayer *s_actionbarlayer_1;
-static TextLayer *tl_1Arrow;
+static TextLayer *tl_1Program;
 static TextLayer *tl_3Vol;
 static TextLayer *tl_2Power;
-static TextLayer *tl_Ident;
+static TextLayer *tl_Ident; //vu or raspio
+static TextLayer *tl_Info ; // Info field for raspio - empty on vu + because you will have a screen :-)
+static BitmapLayer *bl_Icon;
 //------------------------------------
 static char * textVol = "Volume";
 static char * textProgram = "Program";
-static char * textUp = "Up";
-static char * textDown = "Down";
-static char * textOK = "OK";
 static char * textPower;
 static char * textId;
+static char * textInfo;
+static char * textEmpty="";
+
 //------------------------------
 
 uint8_t device = RaspiRadio; //start with the Radio need more often / koennte man auch configurierbar machen
+
+#if defined(PBL_COLOR)
+ #define BGColorBabyBlue  GColorBabyBlueEyes
+#elif defined(PBL_BW)
+ #define BGColorBabyBlue  GColorWhite
+#endif
 
 enum Modes {
   none=0, 
@@ -45,74 +54,81 @@ static uint8_t accMode = accNone;
 static bool accSubscribed = false;
 AppTimer * timerScroll = 0;
 
-static void setStrings()
+static void setDeviceSpecifics()
 {
 	static char * textPowerVu = "Power";
 	static char * textPowerRaspi = " ";
 	static char * textIdVu="V\nu\n+";
 	static char * textIdRaspi="R\na\ns\nP\ni\no";
+	static char * textInfoVu = "";
+	static char * textInfoRaspi = " bla";
 
 	switch (device)
 	{
 	case  RaspiRadio:
 		textPower = textPowerRaspi;
 		textId    = textIdRaspi;
+		textInfo  = textInfoRaspi;
 		break;
 	case Vu :
-		textPower = textPowerVu;
-		textId		= textIdVu;
+		textPower 	= 	textPowerVu;
+		textId		= 	textIdVu;
+		textInfo    =	textInfoVu;
 		break;
 	}
 }
 
 //window functions
 static void initialise_ui(void) {
-  setStrings();
+  setDeviceSpecifics();
+
   s_window = window_create();
 
   window_set_background_color(s_window, GColorBlack);
   //window_set_fullscreen(s_window, false); //old
   
-  s_res_pngupdown = gbitmap_create_with_resource(RESOURCE_ID_pngUpDown);
-  s_res_pngpower = gbitmap_create_with_resource(RESOURCE_ID_pngPower);
-  s_res_pngvolume = gbitmap_create_with_resource(RESOURCE_ID_pngVolume);
+  s_res_pngStation = gbitmap_create_with_resource(RESOURCE_ID_pngStation);
+  s_res_pngPower = gbitmap_create_with_resource(RESOURCE_ID_pngPower);
+  s_res_pngVolume = gbitmap_create_with_resource(RESOURCE_ID_pngVolume);
+  s_res_pngBigIcon = 0;
+
   s_res_roboto_condensed_21 = fonts_get_system_font(FONT_KEY_ROBOTO_CONDENSED_21);
   // s_actionbarlayer_1
   s_actionbarlayer_1 = action_bar_layer_create();
   action_bar_layer_add_to_window(s_actionbarlayer_1, s_window);
-  action_bar_layer_set_background_color(s_actionbarlayer_1, GColorWhite);
-  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_pngupdown);
-  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_pngpower);
-  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pngvolume);
+  action_bar_layer_set_background_color(s_actionbarlayer_1,BGColorBabyBlue );
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_pngStation);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_pngPower);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pngVolume);
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_actionbarlayer_1);
   
 
-  // tl_1Arrow
-  tl_1Arrow = text_layer_create(GRect(8, 13, 100, 28));
-  text_layer_set_background_color(tl_1Arrow, GColorClear);
-  text_layer_set_text_color(tl_1Arrow, GColorWhite);
-  text_layer_set_text(tl_1Arrow, textProgram);
-  text_layer_set_text_alignment(tl_1Arrow, GTextAlignmentRight);
-  text_layer_set_font(tl_1Arrow, s_res_roboto_condensed_21);
-  layer_add_child(window_get_root_layer(s_window), (Layer *)tl_1Arrow);
-  
-  // tl_3Vol
-  tl_3Vol = text_layer_create(GRect(8, 109, 100, 28));
-  text_layer_set_background_color(tl_3Vol, GColorClear);
-  text_layer_set_text_color(tl_3Vol, GColorWhite);
-  text_layer_set_text(tl_3Vol, textVol);
-  text_layer_set_text_alignment(tl_3Vol, GTextAlignmentRight);
-  text_layer_set_font(tl_3Vol, s_res_roboto_condensed_21);
-  layer_add_child(window_get_root_layer(s_window), (Layer *)tl_3Vol);
+  // tl_1Program
+  tl_1Program = text_layer_create(GRect(8, 14, 100, 28));
+  text_layer_set_background_color(tl_1Program, GColorClear);
+  text_layer_set_text_color(tl_1Program, GColorWhite);
+  text_layer_set_text(tl_1Program, textProgram);
+  text_layer_set_text_alignment(tl_1Program, GTextAlignmentRight);
+  text_layer_set_font(tl_1Program, s_res_roboto_condensed_21);
+  layer_add_child(window_get_root_layer(s_window), (Layer *)tl_1Program);
   
   // tl_2Power
-  tl_2Power = text_layer_create(GRect(8, 62, 100, 28));
+  tl_2Power = text_layer_create(GRect(8, 69, 100, 28));
   text_layer_set_background_color(tl_2Power, GColorClear);
   text_layer_set_text_color(tl_2Power, GColorWhite);
   text_layer_set_text(tl_2Power, textPower);
   text_layer_set_text_alignment(tl_2Power, GTextAlignmentRight);
   text_layer_set_font(tl_2Power, s_res_roboto_condensed_21);
   layer_add_child(window_get_root_layer(s_window), (Layer *)tl_2Power);
+
+  // tl_3Vol
+    tl_3Vol = text_layer_create(GRect(8, 124, 100, 28));
+    text_layer_set_background_color(tl_3Vol, GColorClear);
+    text_layer_set_text_color(tl_3Vol, GColorWhite);
+    text_layer_set_text(tl_3Vol, textVol);
+    text_layer_set_text_alignment(tl_3Vol, GTextAlignmentRight);
+    text_layer_set_font(tl_3Vol, s_res_roboto_condensed_21);
+    layer_add_child(window_get_root_layer(s_window), (Layer *)tl_3Vol);
 
   // tl_Ident
   tl_Ident = text_layer_create(GRect(4, 7, 25, 155));
@@ -123,35 +139,108 @@ static void initialise_ui(void) {
   text_layer_set_font(tl_Ident, s_res_roboto_condensed_21);
   layer_add_child(window_get_root_layer(s_window), (Layer *)tl_Ident);
 
+  //tl_Info Text Layer for information from Raspio
+  tl_Info = text_layer_create(GRect(32, 47, 80,72 ));
+  text_layer_set_background_color(tl_Info, BGColorBabyBlue);
+  text_layer_set_text_color(tl_Info, GColorBlack);
+  text_layer_set_text(tl_Info, textInfo);
+  text_layer_set_text_alignment(tl_Info, GTextAlignmentCenter);
+  text_layer_set_font(tl_Info, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  bool hidden = ! device ; //Vu -> device == 0 so hidden == 1
+  layer_set_hidden((Layer *) tl_Info,hidden);
+
+  layer_add_child(window_get_root_layer(s_window), (Layer *)tl_Info);
+
+  //Bitmaplayer for icon which indicate mode
+  bl_Icon = bitmap_layer_create(GRect(32,0,74,50));
+  layer_add_child(window_get_root_layer(s_window),(Layer *) bl_Icon);
+  //ueberschreibt noch nicht - layer ist bei GColorClear transparent
+  /*
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "s_res_pngStation %p", s_res_pngStation);
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "s_res_pngPower %p", s_res_pngPower);
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "s_res_pngVolume %p", s_res_pngVolume);
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "s_res_pngBigIcon %p", s_res_pngBigIcon);
+  */
+  action_bar_layer_set_click_config_provider(s_actionbarlayer_1, (ClickConfigProvider) click_config_provider);
+
 }
 
+
+
 static void destroy_ui(void) {
-  window_destroy(s_window);
+  //APP_LOG(APP_LOG_LEVEL_DEBUG, "call to destroy_ui");
+  gbitmap_destroy(s_res_pngStation);
+  gbitmap_destroy(s_res_pngPower);
+  gbitmap_destroy(s_res_pngVolume);
+  if (s_res_pngBigIcon)
+	  gbitmap_destroy(s_res_pngBigIcon);
   action_bar_layer_destroy(s_actionbarlayer_1);
-  text_layer_destroy(tl_1Arrow);
+  text_layer_destroy(tl_1Program);
   text_layer_destroy(tl_3Vol);
   text_layer_destroy(tl_2Power);
-  gbitmap_destroy(s_res_pngupdown);
-  gbitmap_destroy(s_res_pngpower);
-  gbitmap_destroy(s_res_pngvolume);
+  bitmap_layer_destroy(bl_Icon);
+  window_destroy(s_window);
 }
 // END AUTO-GENERATED UI CODE
 
 static void resetText()
 {
-  setStrings(); //depends on device
-  text_layer_set_text(tl_1Arrow,textProgram);
+  setDeviceSpecifics(); //depends on device
+  text_layer_set_text(tl_1Program,textProgram);
   text_layer_set_text(tl_2Power,textPower);
   text_layer_set_text(tl_3Vol,textVol);
   text_layer_set_text(tl_Ident,textId);
 }
-static void setAltText(char * middle)
-{
-  text_layer_set_text(tl_2Power,middle);
-  text_layer_set_text(tl_1Arrow,textUp);
-  text_layer_set_text(tl_3Vol,textDown);
-}
 
+
+static void rearrangeGui()
+{
+	//APP_LOG(APP_LOG_LEVEL_DEBUG, "call to rearrangeGui");
+	//Null is the same as clear
+	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, NULL);
+	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, NULL);
+	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, NULL);
+
+	//destroy existing bitmaps
+	gbitmap_destroy(s_res_pngStation);
+	gbitmap_destroy(s_res_pngPower);
+	gbitmap_destroy(s_res_pngVolume);
+
+	if (s_res_pngBigIcon)
+	  gbitmap_destroy(s_res_pngBigIcon);
+
+	s_res_pngBigIcon = gbitmap_create_with_resource(RESOURCE_ID_pngStation40);
+
+	switch (mode)
+	{
+	case volume:
+		gbitmap_destroy(s_res_pngBigIcon);
+		s_res_pngBigIcon = gbitmap_create_with_resource(RESOURCE_ID_pngVolume40);
+	case program:
+		s_res_pngStation = gbitmap_create_with_resource(RESOURCE_ID_pngUpArrow);
+		s_res_pngPower  = gbitmap_create_with_resource(RESOURCE_ID_pngOk);
+		s_res_pngVolume = gbitmap_create_with_resource(RESOURCE_ID_pngDownArrow);
+		text_layer_set_text(tl_1Program, textEmpty);
+		text_layer_set_text(tl_2Power, textEmpty);
+		text_layer_set_text(tl_3Vol, textEmpty);
+		bitmap_layer_set_bitmap(bl_Icon,s_res_pngBigIcon);
+		break;
+	case none:
+		bitmap_layer_set_bitmap(bl_Icon,0);
+		gbitmap_destroy(s_res_pngBigIcon);
+		s_res_pngBigIcon = 0;
+		s_res_pngStation = gbitmap_create_with_resource(RESOURCE_ID_pngStation);
+		s_res_pngPower = gbitmap_create_with_resource(RESOURCE_ID_pngPower);
+		s_res_pngVolume = gbitmap_create_with_resource(RESOURCE_ID_pngVolume);
+		text_layer_set_text(tl_1Program, textProgram);
+		text_layer_set_text(tl_2Power, textPower);
+		text_layer_set_text(tl_3Vol, textVol);
+		break;
+	}
+	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_pngStation);
+	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_pngPower);
+	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pngVolume);
+}
 static void handle_window_unload(Window* window) {
   destroy_ui();
   //APP_LOG(APP_LOG_LEVEL_INFO,"Done is %i warnown is %i minutes is %i ",done ? 1 : 0, 
@@ -166,9 +255,9 @@ static void timerScrollRun()
 	else if (accMode == accDown && mode == volume)
 		sendVolDown();
 	else if (accMode == accUp && mode == program)
-		sendArrowUp();
+		sendProgramUp();
 	else if (accMode == accDown && mode==program)
-		sendArrowDown();
+		sendProgramDown();
 
 	timerScroll = 0;
 	timerScroll = app_timer_register(500, timerScrollRun, 0); //call it again
@@ -241,19 +330,23 @@ static void back_single_click_handler(ClickRecognizerRef recognizer, void *conte
 	{
 		case none:
 			//we have to leave the app 
-			hide_control();//could crash will see, no works
+			hide_control();//could crash will see, no works and is neccessary
+			//to stop application
 			break;
 		case volume:
 			mode=none;
 			switchOffAccel();
+			rearrangeGui();
+			resetText();
 			break;
 		case program:
 			mode=none;
 			switchOffAccel();
 			sendExit();
+			rearrangeGui();
+			resetText();
 			break;
 	}
-	resetText();
 }
 
 //select long click - previous
@@ -274,8 +367,11 @@ static void select_long_click_handler(ClickRecognizerRef recognizer, void *conte
 		}
 		sendNewDevice();//device is global
 		mode = none; //just go back
+		rearrangeGui();
 		switchOffAccel();
 		resetText();
+  	    bool hidden = ! device ; //Vu -> device == 0 so hidden == 1
+		layer_set_hidden((Layer *) tl_Info,hidden);
 	}
 }
 //volume
@@ -283,19 +379,19 @@ static void down_single_click_handler(ClickRecognizerRef recognizer, void *conte
   switch (mode)
 	{
 		case none:
-			setAltText(textVol);
 			mode = volume;
 			if (accel)
 				switchOnAccel();
-			sendVolDown();
+			sendVolDown();//to show
 			break;
 	  case volume:
 			sendVolDown();
 			break;
 	  case program:
-			sendArrowDown();
+			sendProgramDown();
 			break;
 	}
+	rearrangeGui();
 }
 //up click
 static void up_single_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -304,10 +400,9 @@ static void up_single_click_handler(ClickRecognizerRef recognizer, void *context
   switch (mode)
 	{
   	  case none:
-			setAltText(textOK);
 			mode = program;
-			sendArrowDown();
-			sendArrowUp(); //back to original position 
+			sendProgramDown();
+			sendProgramUp(); //back to original position
 			if (accel)
 				switchOnAccel();
 			break;
@@ -315,10 +410,11 @@ static void up_single_click_handler(ClickRecognizerRef recognizer, void *context
 			sendVolUp();
 			break;
 	  case program:
-
-			sendArrowUp();
+			sendProgramUp();
 			break;
 	}
+	rearrangeGui();
+
 }
 //misc
 static void select_single_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -341,8 +437,25 @@ static void select_single_click_handler(ClickRecognizerRef recognizer, void *con
 			sendOK();
 			break;
 	}
+	rearrangeGui();
+
 }
 
+//provider fuer die action_bar
+static void  click_config_provider(Window * window)
+{
+	// single click / repeat-on-hold config:
+	  window_single_click_subscribe(BUTTON_ID_BACK, back_single_click_handler); //Back
+
+	  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 300, down_single_click_handler);
+	  //window_single_click_subscribe(BUTTON_ID_DOWN, down_single_click_handler); //Volume
+	  window_single_repeating_click_subscribe(BUTTON_ID_UP, 300, up_single_click_handler);
+	  //window_single_click_subscribe(BUTTON_ID_UP, up_single_click_handler); //Power
+
+	  window_single_click_subscribe(BUTTON_ID_SELECT, select_single_click_handler);//Arrows (Program)
+	  window_long_click_subscribe(BUTTON_ID_SELECT, 700, select_long_click_handler, NULL);
+}
+//war ein provider fuer das window, nutze jetzt mal actionbar
 static void config_provider(Window *window) {
  // single click / repeat-on-hold config:
   window_single_click_subscribe(BUTTON_ID_BACK, back_single_click_handler); //Back
