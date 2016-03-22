@@ -100,6 +100,12 @@ static void initialise_ui(void) {
   action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_pngStation);
   action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_pngPower);
   action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pngVolume);
+
+  //no animation on old pebble
+  #if defined (PBL_COLOR)
+  	  action_bar_layer_set_icon_press_animation(s_actionbarlayer_1,BUTTON_ID_UP,ActionBarLayerIconPressAnimationMoveUp);
+  	  action_bar_layer_set_icon_press_animation(s_actionbarlayer_1,BUTTON_ID_DOWN,ActionBarLayerIconPressAnimationMoveDown);
+  #endif
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_actionbarlayer_1);
   
 
