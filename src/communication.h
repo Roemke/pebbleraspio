@@ -8,3 +8,6 @@ void sendProgramDown();
 void sendOK();
 void sendExit();
 void sendNewDevice();
+void getVolume();
+void getFullStatus();
+void freeArray(char **arr,int n);

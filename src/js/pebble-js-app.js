@@ -5,6 +5,7 @@
  * kopiere daher die appkeys hier herein
  */
   var appKeys = {
+  	"KEY_APPREADY": 10,
     "KEY_POWER": 116,
     "KEY_VOLUP": 115,
     "KEY_VOLDOWN": 114,
@@ -20,7 +21,7 @@
     "KEY_VU": 1004,   
     "KEY_RASPIP": 1005,
     "KEY_DEVICE" : 1006,
-    "KEY_RASPSTATUS" : 1100,
+    "KEY_RASPVOLUME" : 1100,
     "KEY_RASPFULLSTATUS" : 1101
   };
 
@@ -45,6 +46,9 @@ function prepareConfiguration(options) {
 }
 
 function readyCallback(event) {
+  //inform watch
+  Pebble.sendAppMessage({'KEY_APPREADY': 1});
+  
   isReady = true;
   var callback;
   //options = getOptions();
@@ -136,6 +140,7 @@ function onReady(callback) {
   }
 }
 
+
 //we need three Listeners
 Pebble.addEventListener("ready", readyCallback); 
 Pebble.addEventListener("showConfiguration", showConfiguration);
@@ -160,17 +165,17 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
     	var result = "action=";
     	switch(key)
     	{
-    		case appKeys.KEY_RASPSTATUS:
+    		case appKeys.KEY_RASPVOLUME:
     			result += "status";
     		break;
     		case appKeys.KEY_RASPFULLSTATUS:
     			result += "completeState";
     		break;
     		case appKeys.KEY_VOLDOWN:
-    			result += "volDown";
+    			result += "volumeDown";
     		break;    		
     		case appKeys.KEY_VOLUP:
-    			result += "volUp";
+    			result += "volumeUp";
     		break;    		//todo aus liste auswaehlen
     		case appKeys.KEY_STATIONDOWN:
     		break;    		
@@ -179,7 +184,62 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
     	}
     	return result;
     }
-    
+
+/* answer bei completeState
+ * Response = {"infoText":"completeState","result":
+ *   [{"response":null,"status":"OK","values":
+ *      {"volume":"85","repeat":"0","random":"0","single":"0","consume":"0","playlist":"115","playlistlength":"13",
+ *       "mixrampdb":"0.000000","state":"play","song":"0","songid":"14","time":"2439:0","elapsed":"2439.498",
+ *       "bitrate":"128","audio":"48000:24:2","nextsong":"1","nextsongid":"15"}},
+ *    {"response":null,"status":"OK",
+ *       "values":{"file":"http:\/\/wdr-5.akacast.akamaistream.net\/7\/41\/119439\/v1\/gnl.akacast.akamaistream.net\/wdr-5",
+ *       "Title":"WDR 5 Hotline - 0221 56789 555","Name":"WDR 5","Pos":"0","Id":"14"}}
+ *       ,"2"],"state":0}
+ *  -> modifiziere raspberry radio, so dass er im infotext das kommando mit sendet -> duerfte im Webinterface
+ *     kein Problem geben, getan, 
+ */
+	function sendAnswerFromRaspi (answer) //send Answer to pebble
+	{
+		
+		//console.log("Response = " + answer);
+		var ansO = JSON.parse(answer);
+		var send = "";	
+		switch (ansO.infoText)
+		{
+			case "completeState" :
+			//vorsicht volumen nicht korrigiert
+			 if (ansO.result[1].values.Title=="undefined")
+			 	ansO.result[1].values.Title="keine Information des Senders";
+			 send = ansO.result[1].values.Name + "|" + ansO.result[1].values.Title + "|" + ansO.result[0].values.volume ; 
+			 //wieso hab ich die Antwort so kompliziert gemacht?
+			   Pebble.sendAppMessage({'KEY_RASPFULLSTATUS': send});
+			break;
+			case "status" : //dann nur volume
+			//hatte in meinem web-interface eine volumenkorrektur eingebaut, der MPD ist bei 50% nicht hoerbar.
+			//vielleicht hätte ich die besser serverseitig bei der Mpd-Klasse eingebaut, naja, korrigiere auch hier			
+			  send = parseInt(ansO.result.values.volume) ; 
+			  send = (send - 50)*2;
+			  send = (send < 0) ? 0 : send;  
+			  console.log("send volume " + send );
+			  Pebble.sendAppMessage({'KEY_RASPVOLUME': send});
+			break;
+			case "volumeUp": //dann bekomme ich den aktuellen Status zurueck, diesen an pebble senden
+			  send = parseInt(ansO.result.values.volume) ; 
+			  send = (send - 50)*2;
+			  send = (send < 0) ? 0 : send;  
+			  console.log("send aktualisiertes Volume " + send );
+			  Pebble.sendAppMessage({'KEY_RASPVOLUME': send});
+			break;
+			case "volumeDown": //dann bekomme ich den aktuellen Status zurueck, diesen an pebble senden
+			  send = parseInt(ansO.result.values.volume) ; 
+			  send = (send - 50)*2;
+			  send = (send < 0) ? 0 : send;  
+			  console.log("send aktualisiertes Volume " + send );
+			  Pebble.sendAppMessage({'KEY_RASPVOLUME': send});
+			break;
+		}
+		console.log("Send to Pebble: " + send); 
+	}    
     //zwei interne funktionen, moechte auf stillSending zugreifen
 	//die folgende funktion findet er
 	function handleCommandToRaspio(commandKey,options)
@@ -190,20 +250,23 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 	   		Pebble.showSimpleNotificationOnPebble("Error", "No IP of raspberry - configuration missing");
 	   	else
 	   	{
-	   		//status abfrage (Lautstaerke)
-	   		//voller status ( Sender und Liste?)
-	   		//lautstaerke erhoehen / verrringern
-	   		//sender hoch / runter
+			// Timeout to abort in 5 seconds, property of XMLHttpRequest seems not to be supported
+			var xmlHttpTimeout=setTimeout( 
+			   function (){
+			   	 stillSending = false;
+			     req.abort();
+			     console.log("Request for timed out, maybe wrong ip: " + options.raspip);
+			   },5000);
 			var req = new XMLHttpRequest();
 			var command = translateRaspiKey(commandKey);
-			req.open('GET', 'http://' + options.vuip + '/web/remotecontrol?command='+commandKey, true); //true async
+			console.log("request is http://" + options.raspip + '/radio/php/ajaxSender.php?'+command);
+			req.open('GET', 'http://' + options.raspip + '/radio/php/ajaxSender.php?'+command, true); //true async
 			req.onload = function(e) {//onload should always have state 4 ?
 			   if (req.readyState == 4 && req.status == 200) {
 			     clearTimeout(xmlHttpTimeout); 
 			      if(req.status == 200) {
+			         sendAnswerFromRaspi(this.responseText);
 			         stillSending = false;
-			         //var response = req.responseText;
-			         //console.log("It seems we have success with " + response);
 			         } //else { console.log('Error'); }
 			      } //status 200 
 			      else
@@ -212,13 +275,6 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 			      }
 			};//onload
 			req.send(null);
-			// Timeout to abort in 5 seconds, property of XMLHttpRequest seems not to be supported
-			var xmlHttpTimeout=setTimeout( 
-			   function (){
-			   	 stillSending = false;
-			     req.abort();
-			     console.log("Request for timed out, maybe wrong ip: " + options.vuip);
-			   },5000);
 	   		
 	   	}//ip is available
 	   	   	
@@ -233,6 +289,13 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 	   		Pebble.showSimpleNotificationOnPebble("Error", "No IP of VU + - configuration missing");
 	    else
 	    {
+			// Timeout to abort in 5 seconds, property of XMLHttpRequest seems not to be supported
+			var xmlHttpTimeout=setTimeout( 
+			   function (){
+			   	 stillSending = false;
+			     req.abort();
+			     console.log("Request for timed out, maybe wrong ip: " + options.vuip);
+			   },5000);
 			var req = new XMLHttpRequest();
 			//vuplus : sende direkt die keys an die vu, keys entsprechend definiert
 			
@@ -255,13 +318,6 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 			      }
 			};//onload
 			req.send(null);
-			// Timeout to abort in 5 seconds, property of XMLHttpRequest seems not to be supported
-			var xmlHttpTimeout=setTimeout( 
-			   function (){
-			   	 stillSending = false;
-			     req.abort();
-			     console.log("Request for timed out, maybe wrong ip: " + options.vuip);
-			   },5000);
 		}//else ip is available   
 	}
 
@@ -305,8 +361,9 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
       }//eof if payload
     };//eof inner function
   }//eof eventListener
-)(); //first call initializes stillSending  
-  Pebble.addEventListener('appmessage', eventListener);
+)(); //first call initializes stillSending 
+ 
+Pebble.addEventListener('appmessage', eventListener);
   //eventListener in closure, so of type of function which takes argument e, we don't need argument here
   //function(e) { //handle keys send from pebble, hard coded in c-file and appinfo.json
   //} //eof event listener

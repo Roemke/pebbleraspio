@@ -11,6 +11,7 @@
     "watchface": false
   },
   "appKeys": {
+  	"KEY_APPREADY": 10,
     "KEY_POWER": 116,
     "KEY_VOLUP": 115,
     "KEY_VOLDOWN": 114,
@@ -26,7 +27,7 @@
     "KEY_VU": 1004,   
     "KEY_RASPIP": 1005,
     "KEY_DEVICE" : 1006,
-    "KEY_RASPSTATUS" : 1100,
+    "KEY_RASPVOLUME" : 1100,
     "KEY_RASPFULLSTATUS" : 1101
   },
   "capabilities": [

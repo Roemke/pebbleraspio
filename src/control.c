@@ -3,6 +3,7 @@
 #include "control.h"
 #include "communication.h"
 #include "globals.h" //bool defined in pebble, so it must be here
+#include "control.h"
 
 // BEGIN AUTO-GENERATED UI CODE; DO NOT MODIFY
 static Window *s_window;
@@ -16,7 +17,9 @@ static TextLayer *tl_1Program;
 static TextLayer *tl_3Vol;
 static TextLayer *tl_2Power;
 static TextLayer *tl_Ident; //vu or raspio
+static TextLayer *tl_Station; //Station for Raspberry - empty on vu +
 static TextLayer *tl_Info ; // Info field for raspio - empty on vu + because you will have a screen :-)
+static TextLayer *tl_Vol ;
 static BitmapLayer *bl_Icon;
 //------------------------------------
 static char * textVol = "Volume";
@@ -24,16 +27,19 @@ static char * textProgram = "Program";
 static char * textPower;
 static char * textId;
 static char * textInfo;
+static char * textStation;
 static char * textEmpty="";
 
+char textVolRaspi[] = "---"; //3 zeichen
+char  * raspiFullStatus[RFSZahl]={0}; //need to be on heap, RFSZahl in c nur per define
 //------------------------------
 
 uint8_t device = RaspiRadio; //start with the Radio need more often / koennte man auch configurierbar machen
 
 #if defined(PBL_COLOR)
- #define BGColorBabyBlue  GColorBabyBlueEyes
+ #define ColorBabyBlue  GColorBabyBlueEyes
 #elif defined(PBL_BW)
- #define BGColorBabyBlue  GColorWhite
+ #define ColorBabyBlue  GColorWhite
 #endif
 
 enum Modes {
@@ -61,7 +67,9 @@ static void setDeviceSpecifics()
 	static char * textIdVu="V\nu\n+";
 	static char * textIdRaspi="R\na\ns\nP\ni\no";
 	static char * textInfoVu = "";
-	static char * textInfoRaspi = " bla";
+	static char * textStationVu = "";
+	static char * textStationRaspi = "?";
+	static char * textInfoRaspi = "";
 
 	switch (device)
 	{
@@ -69,15 +77,31 @@ static void setDeviceSpecifics()
 		textPower = textPowerRaspi;
 		textId    = textIdRaspi;
 		textInfo  = textInfoRaspi;
+		textStation = textStationRaspi;
 		break;
 	case Vu :
 		textPower 	= 	textPowerVu;
 		textId		= 	textIdVu;
 		textInfo    =	textInfoVu;
+		textStation = 	textStationVu;
 		break;
 	}
 }
 
+void setLayersVisibility(void)
+{
+	  //Vu -> device == 0 Raspberry device == 1
+	  // modes none=0, program=1,volume=2
+	 //hidden raspberry layers fuer vu auf jeden Fall nicht sichtbar
+	  layer_set_hidden((Layer *) tl_Info,!device || (mode != none));
+	  layer_set_hidden((Layer *) tl_Station,!device || (mode != none));
+	  layer_set_hidden((Layer *) tl_Vol, !device || (mode != volume) );
+
+	  //hidden vu layers
+	  layer_set_hidden((Layer *) tl_1Program,  device || (mode != none));
+	  layer_set_hidden((Layer *) tl_2Power,device || (mode != none));
+	  layer_set_hidden((Layer *) tl_3Vol,device || (mode != none));
+}
 //window functions
 static void initialise_ui(void) {
   setDeviceSpecifics();
@@ -96,7 +120,7 @@ static void initialise_ui(void) {
   // s_actionbarlayer_1
   s_actionbarlayer_1 = action_bar_layer_create();
   action_bar_layer_add_to_window(s_actionbarlayer_1, s_window);
-  action_bar_layer_set_background_color(s_actionbarlayer_1,BGColorBabyBlue );
+  action_bar_layer_set_background_color(s_actionbarlayer_1,ColorBabyBlue );
   action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_pngStation);
   action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_pngPower);
   action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pngVolume);
@@ -145,20 +169,45 @@ static void initialise_ui(void) {
   text_layer_set_font(tl_Ident, s_res_roboto_condensed_21);
   layer_add_child(window_get_root_layer(s_window), (Layer *)tl_Ident);
 
+  //tl_Station Station of Raspberry pi
+  //nehmen wir mal die Auflösung des Windows - sollte eigentlich immer relativ arbeiten,
+  //naja, was solls
+  int stationHeight = 30;
+  tl_Station = text_layer_create(GRect(32, 1, 80, stationHeight ));
+  text_layer_set_background_color(tl_Station, GColorClear);
+  text_layer_set_text_color(tl_Station, ColorBabyBlue);
+  text_layer_set_text_alignment(tl_Station, GTextAlignmentLeft);
+  text_layer_set_font(tl_Station, s_res_roboto_condensed_21);
+  text_layer_set_text(tl_Station, textStation);
+
+  layer_add_child(window_get_root_layer(s_window), (Layer *)tl_Station);
+
   //tl_Info Text Layer for information from Raspio
-  tl_Info = text_layer_create(GRect(32, 47, 80,72 ));
-  text_layer_set_background_color(tl_Info, BGColorBabyBlue);
-  text_layer_set_text_color(tl_Info, GColorBlack);
+  //nehmen wir mal die Auflösung des Windows - sollte eigentlich immer relativ arbeiten,
+  //naja, was solls
+  Layer * window_layer = window_get_root_layer(s_window);
+  GRect window_bounds = layer_get_bounds(window_layer);
+  tl_Info = text_layer_create(GRect(32, stationHeight + 2, 80, window_bounds.size.h-3-stationHeight ));
+  text_layer_set_background_color(tl_Info, GColorClear);
+  text_layer_set_text_color(tl_Info, GColorWhite);
   text_layer_set_text(tl_Info, textInfo);
-  text_layer_set_text_alignment(tl_Info, GTextAlignmentCenter);
-  text_layer_set_font(tl_Info, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-  bool hidden = ! device ; //Vu -> device == 0 so hidden == 1
-  layer_set_hidden((Layer *) tl_Info,hidden);
+  text_layer_set_text_alignment(tl_Info, GTextAlignmentLeft);
+  text_layer_set_font(tl_Info, s_res_roboto_condensed_21);
 
   layer_add_child(window_get_root_layer(s_window), (Layer *)tl_Info);
 
+  //tl_Vol Text Layer Volume
+  tl_Vol = text_layer_create(GRect(32, stationHeight + 22, 80, window_bounds.size.h-23-stationHeight ));
+  text_layer_set_background_color(tl_Vol, GColorClear);
+  text_layer_set_text_color(tl_Vol, ColorBabyBlue);
+  text_layer_set_text(tl_Vol, textVolRaspi);
+  text_layer_set_text_alignment(tl_Vol, GTextAlignmentCenter);
+  text_layer_set_font(tl_Vol, fonts_get_system_font(FONT_KEY_BITHAM_42_MEDIUM_NUMBERS));
+
+  layer_add_child(window_get_root_layer(s_window), (Layer *)tl_Vol);
+
   //Bitmaplayer for icon which indicate mode
-  bl_Icon = bitmap_layer_create(GRect(32,0,74,50));
+  bl_Icon = bitmap_layer_create(GRect(32, 1, 80, stationHeight+10 ));
   layer_add_child(window_get_root_layer(s_window),(Layer *) bl_Icon);
   //ueberschreibt noch nicht - layer ist bei GColorClear transparent
   /*
@@ -169,6 +218,8 @@ static void initialise_ui(void) {
   */
   action_bar_layer_set_click_config_provider(s_actionbarlayer_1, (ClickConfigProvider) click_config_provider);
 
+  setLayersVisibility();
+  //evtl. Informationen vom Device abholen, nein hier zu früh
 }
 
 
@@ -184,6 +235,10 @@ static void destroy_ui(void) {
   text_layer_destroy(tl_1Program);
   text_layer_destroy(tl_3Vol);
   text_layer_destroy(tl_2Power);
+  text_layer_destroy(tl_Ident);
+  text_layer_destroy(tl_Info);
+  text_layer_destroy(tl_Station);
+  text_layer_destroy(tl_Vol);
   bitmap_layer_destroy(bl_Icon);
   window_destroy(s_window);
 }
@@ -199,7 +254,7 @@ static void resetText()
 }
 
 
-static void rearrangeGui()
+void rearrangeGui()
 {
 	//APP_LOG(APP_LOG_LEVEL_DEBUG, "call to rearrangeGui");
 	//Null is the same as clear
@@ -241,11 +296,14 @@ static void rearrangeGui()
 		text_layer_set_text(tl_1Program, textProgram);
 		text_layer_set_text(tl_2Power, textPower);
 		text_layer_set_text(tl_3Vol, textVol);
+		text_layer_set_text(tl_Station,raspiFullStatus[0]);
+		text_layer_set_text(tl_Info,raspiFullStatus[1]);
 		break;
 	}
 	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_pngStation);
 	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_pngPower);
 	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pngVolume);
+	setLayersVisibility();
 }
 static void handle_window_unload(Window* window) {
   destroy_ui();
@@ -376,8 +434,6 @@ static void select_long_click_handler(ClickRecognizerRef recognizer, void *conte
 		rearrangeGui();
 		switchOffAccel();
 		resetText();
-  	    bool hidden = ! device ; //Vu -> device == 0 so hidden == 1
-		layer_set_hidden((Layer *) tl_Info,hidden);
 	}
 }
 //volume
@@ -388,7 +444,10 @@ static void down_single_click_handler(ClickRecognizerRef recognizer, void *conte
 			mode = volume;
 			if (accel)
 				switchOnAccel();
-			sendVolDown();//to show
+			if (device == Vu)
+				sendVolDown();//to show on vu
+			else if (device == RaspiRadio)
+				getVolume();
 			break;
 	  case volume:
 			sendVolDown();
@@ -437,6 +496,8 @@ static void select_single_click_handler(ClickRecognizerRef recognizer, void *con
 			switchOffAccel();
 			if (device == Vu)
 				sendPower();
+			else if (device == RaspiRadio)
+				getFullStatus(); //aktualisieren der Anzeige
 			break;
 		case program:
 			switchOffAccel();
@@ -494,6 +555,7 @@ void show_control(void) {
 
 void hide_control(void) {
   window_stack_remove(s_window, true);
+  freeArray(raspiFullStatus,RFSZahl);
 }
 
 void bind_clicks(void)
