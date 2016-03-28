@@ -11,6 +11,9 @@
     "watchface": false
   },
   "appKeys": {
+	"KEY_NOTSET": 0,
+    "KEY_VU": 1,   
+    "KEY_RASPIO": 2,
   	"KEY_APPREADY": 10,
     "KEY_POWER": 116,
     "KEY_VOLUP": 115,
@@ -23,12 +26,13 @@
     "KEY_CONTROL": 1000,
     "KEY_VUIP": 1001,    
     "KEY_ACCEL": 1002,
-    "KEY_RASPIO": 1003,
-    "KEY_VU": 1004,   
     "KEY_RASPIP": 1005,
     "KEY_DEVICE" : 1006,
     "KEY_RASPVOLUME" : 1100,
-    "KEY_RASPFULLSTATUS" : 1101
+    "KEY_RASPFULLSTATUS" : 1101,
+    "KEY_RASPSTATIONLIST" :   1102,
+    "KEY_RASPACTUALSTAION" : 1103,
+    "KEY_SWITCHSTATION" : 1104
   },
   "capabilities": [
     "configurable"

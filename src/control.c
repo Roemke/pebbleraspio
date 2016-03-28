@@ -5,8 +5,21 @@
 #include "globals.h" //bool defined in pebble, so it must be here
 #include "control.h"
 
+/*
+ * nehme noch ein window fuer den menulayer dazu, wenn ich den menulayer direkt
+ * auf das aktuelle window setze, dann bekomme ich den backevent nicht abgefangen ohne
+ * die funktionalität der up un down tasten zunichte zu machen
+ * mit window fuer menu layer geht es, kann mich in den unload event einhängen
+ *
+ * bleibt das Problem: beim scrollen durch die Liste werden die unteren Bereiche nicht hoch gescrollt
+ * hatte gelesen: menu_layer_reload_data loest das Problem hatte das in selection changed gesetzt
+ * -> fantastischer Absturz mit vergessen der firmware
+ * in click event genommen -> es geht, also in redrawStations und alles ist ok
+ * */
+
 // BEGIN AUTO-GENERATED UI CODE; DO NOT MODIFY
-static Window *s_window;
+//naja, damit hat es angefangen
+static Window *s_window, *menu_window;
 static GBitmap *s_res_pngStation;
 static GBitmap *s_res_pngPower;
 static GBitmap *s_res_pngVolume;
@@ -21,6 +34,7 @@ static TextLayer *tl_Station; //Station for Raspberry - empty on vu +
 static TextLayer *tl_Info ; // Info field for raspio - empty on vu + because you will have a screen :-)
 static TextLayer *tl_Vol ;
 static BitmapLayer *bl_Icon;
+static MenuLayer * ml_Stations;
 //------------------------------------
 static char * textVol = "Volume";
 static char * textProgram = "Program";
@@ -31,10 +45,14 @@ static char * textStation;
 static char * textEmpty="";
 
 char textVolRaspi[] = "---"; //3 zeichen
-char  * raspiFullStatus[RFSZahl]={0}; //need to be on heap, RFSZahl in c nur per define
+char  ** raspiFullStatus=0; //need to be on heap
+
+static void  click_config_provider(Window * window);
+static void back_single_click_handler(ClickRecognizerRef recognizer, void *context) ;
+
 //------------------------------
 
-uint8_t device = RaspiRadio; //start with the Radio need more often / koennte man auch configurierbar machen
+int actualStation = 0;
 
 #if defined(PBL_COLOR)
  #define ColorBabyBlue  GColorBabyBlueEyes
@@ -59,7 +77,55 @@ static uint8_t mode = none;
 static uint8_t accMode = accNone;
 static bool accSubscribed = false;
 AppTimer * timerScroll = 0;
+AppTimer * timerAktualisiereStatus = 0;
 
+
+static void aktualisiereStatus()
+{
+	if (device == RaspiRadio)
+	{
+		getFullStatus();
+		 //APP_LOG(APP_LOG_LEVEL_DEBUG, "timer aktualisiere status");
+		timerAktualisiereStatus = app_timer_register(5000,aktualisiereStatus,0);
+	}
+	else
+		timerAktualisiereStatus = 0;
+}
+//4 callbacks for the menu to select a station
+static uint16_t getNumberOfStations(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+	return numberOfStations;
+}
+
+static void drawStationRaw (GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data)
+{
+	//menu_cell_title_draw(ctx, cell_layer, stationList[cell_index->row]);
+	menu_cell_basic_draw(ctx, cell_layer, stationList[cell_index->row], NULL, NULL);
+}
+static int16_t getCellHeight(MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
+	return 28;
+}
+/*experimente
+static void stationSelectChanged (MenuLayer *menu_layer, MenuIndex new_index, MenuIndex old_index, void *callback_context)
+{
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "changed from %d to %d",old_index.row,new_index.row);
+	  //menu_layer_reload_data(ml_Stations); fuehrt zum absturz
+	  //layer_mark_dirty((Layer *) menu_layer);
+}
+*/
+static void stationSelect(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+	actualStation = cell_index->row;
+	switchStation(actualStation);
+}
+//-------------------------------------------
+
+void redrawStationMenu()
+{
+	//layer_mark_dirty((Layer *) ml_Stations);
+	menu_layer_reload_data(ml_Stations);
+	menu_layer_set_selected_index(ml_Stations,
+									(MenuIndex) {.section=0,.row=actualStation},
+									MenuRowAlignCenter,true);
+}
 static void setDeviceSpecifics()
 {
 	static char * textPowerVu = "Power";
@@ -93,14 +159,20 @@ void setLayersVisibility(void)
 	  //Vu -> device == 0 Raspberry device == 1
 	  // modes none=0, program=1,volume=2
 	 //hidden raspberry layers fuer vu auf jeden Fall nicht sichtbar
-	  layer_set_hidden((Layer *) tl_Info,!device || (mode != none));
-	  layer_set_hidden((Layer *) tl_Station,!device || (mode != none));
-	  layer_set_hidden((Layer *) tl_Vol, !device || (mode != volume) );
+	  layer_set_hidden((Layer *) tl_Info, (device == Vu ) || (mode != none));
+	  layer_set_hidden((Layer *) tl_Station,(device == Vu) || (mode != none));
+	  layer_set_hidden((Layer *) tl_Vol, (device == Vu)|| (mode != volume) );
 
-	  //hidden vu layers
-	  layer_set_hidden((Layer *) tl_1Program,  device || (mode != none));
-	  layer_set_hidden((Layer *) tl_2Power,device || (mode != none));
-	  layer_set_hidden((Layer *) tl_3Vol,device || (mode != none));
+	  // Bind the menu layer's click config provider to the window for interactivity
+	  if (device == RaspiRadio && mode == program)
+	  {
+		  window_stack_push(menu_window, true); //wird sichtbar
+	  }
+
+	  //vu layers hidden for raspberry
+	  layer_set_hidden((Layer *) tl_1Program,  (device == RaspiRadio) || (mode != none));
+	  layer_set_hidden((Layer *) tl_2Power,(device == RaspiRadio) || (mode != none));
+	  layer_set_hidden((Layer *) tl_3Vol,(device == RaspiRadio) || (mode != none));
 }
 //window functions
 static void initialise_ui(void) {
@@ -131,6 +203,7 @@ static void initialise_ui(void) {
   	  action_bar_layer_set_icon_press_animation(s_actionbarlayer_1,BUTTON_ID_DOWN,ActionBarLayerIconPressAnimationMoveDown);
   #endif
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_actionbarlayer_1);
+  action_bar_layer_set_click_config_provider(s_actionbarlayer_1, (ClickConfigProvider) click_config_provider);
   
 
   // tl_1Program
@@ -216,14 +289,30 @@ static void initialise_ui(void) {
 	  APP_LOG(APP_LOG_LEVEL_DEBUG, "s_res_pngVolume %p", s_res_pngVolume);
 	  APP_LOG(APP_LOG_LEVEL_DEBUG, "s_res_pngBigIcon %p", s_res_pngBigIcon);
   */
-  action_bar_layer_set_click_config_provider(s_actionbarlayer_1, (ClickConfigProvider) click_config_provider);
 
+  //stations menu - simplemenu geht nicht alles const
+  menu_window = window_create();
+  ml_Stations = menu_layer_create(window_bounds); //fullscreen
+  //menu erzeugt die Daten via callback
+  menu_layer_set_callbacks(ml_Stations, 0, //0 : no contextdata send to callback
+    (MenuLayerCallbacks){
+      .get_num_sections = 0, //0 defaults to 1 section
+      .get_num_rows = getNumberOfStations,
+      .get_cell_height = getCellHeight, // 0 default of 44, ist zu viel
+      .get_header_height = 0, //0 switches header of
+      .draw_header = 0, //can be 0 if get_header_height is set to 0
+      .draw_row = drawStationRaw,
+      .select_click = stationSelect, //for simple menu only 3 callbacks are neccessary
+      .selection_changed = 0,// stationSelectChanged,
+    });
+    layer_add_child(window_get_root_layer(menu_window),(Layer *) ml_Stations);
+    menu_layer_set_click_config_onto_window(ml_Stations, menu_window);
   setLayersVisibility();
   //evtl. Informationen vom Device abholen, nein hier zu früh
 }
 
 
-
+//wird von s_window unload gerufen
 static void destroy_ui(void) {
   //APP_LOG(APP_LOG_LEVEL_DEBUG, "call to destroy_ui");
   gbitmap_destroy(s_res_pngStation);
@@ -240,7 +329,9 @@ static void destroy_ui(void) {
   text_layer_destroy(tl_Station);
   text_layer_destroy(tl_Vol);
   bitmap_layer_destroy(bl_Icon);
+  menu_layer_destroy(ml_Stations);
   window_destroy(s_window);
+  window_destroy(menu_window);
 }
 // END AUTO-GENERATED UI CODE
 
@@ -253,11 +344,16 @@ static void resetText()
   text_layer_set_text(tl_Ident,textId);
 }
 
-
+void resetGui()
+{
+	mode=none;
+	rearrangeGui();
+}
 void rearrangeGui()
 {
 	//APP_LOG(APP_LOG_LEVEL_DEBUG, "call to rearrangeGui");
 	//Null is the same as clear
+	resetText();
 	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, NULL);
 	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, NULL);
 	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, NULL);
@@ -296,20 +392,35 @@ void rearrangeGui()
 		text_layer_set_text(tl_1Program, textProgram);
 		text_layer_set_text(tl_2Power, textPower);
 		text_layer_set_text(tl_3Vol, textVol);
-		text_layer_set_text(tl_Station,raspiFullStatus[0]);
-		text_layer_set_text(tl_Info,raspiFullStatus[1]);
+		if (device == RaspiRadio)
+		{
+			text_layer_set_text(tl_Station,raspiFullStatus[0]);
+			text_layer_set_text(tl_Info,raspiFullStatus[1]);
+		}
 		break;
 	}
 	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_pngStation);
 	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_pngPower);
 	action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pngVolume);
+	if (device == RaspiRadio && ! timerAktualisiereStatus)
+		aktualisiereStatus();
 	setLayersVisibility();
 }
+//hauptfenster
 static void handle_window_unload(Window* window) {
   destroy_ui();
   //APP_LOG(APP_LOG_LEVEL_INFO,"Done is %i warnown is %i minutes is %i ",done ? 1 : 0, 
   //                       warnown ? 1 : 0, minutes);
   //APP_LOG(APP_LOG_LEVEL_INFO,"Destroy window");
+}
+//menu_fenster, wenn der Nutzer den back button im menu drueckt
+//fenster wird nicht zerstört, denn ich kann es später noch nutzen?
+static void handle_menu_window_unload(Window * w)
+{
+	 //APP_LOG(APP_LOG_LEVEL_INFO,"unload of menu_window");
+	mode = none; //umschalten auf haupwindow
+	getFullStatus();
+	rearrangeGui();
 }
 
 static void timerScrollRun()
@@ -388,6 +499,7 @@ static void switchOffAccel()
 	accSubscribed = false;
 }
 
+//handler ------ im modus station fuer device raspberry greifen die menu-handler
 //back button left
 static void back_single_click_handler(ClickRecognizerRef recognizer, void *context) {
   switch (mode)
@@ -401,14 +513,12 @@ static void back_single_click_handler(ClickRecognizerRef recognizer, void *conte
 			mode=none;
 			switchOffAccel();
 			rearrangeGui();
-			resetText();
 			break;
 		case program:
 			mode=none;
 			switchOffAccel();
 			sendExit();
 			rearrangeGui();
-			resetText();
 			break;
 	}
 }
@@ -418,6 +528,7 @@ static void back_single_click_handler(ClickRecognizerRef recognizer, void *conte
 //switch between them
 static void select_long_click_handler(ClickRecognizerRef recognizer, void *context)
 {
+	 //APP_LOG(APP_LOG_LEVEL_INFO,"long select click with raspio=%d and vu=%d",raspio,vu);
 	if (vu && raspio) //both should be controlled
 	{
 		switch (device)
@@ -433,7 +544,6 @@ static void select_long_click_handler(ClickRecognizerRef recognizer, void *conte
 		mode = none; //just go back
 		rearrangeGui();
 		switchOffAccel();
-		resetText();
 	}
 }
 //volume
@@ -447,7 +557,10 @@ static void down_single_click_handler(ClickRecognizerRef recognizer, void *conte
 			if (device == Vu)
 				sendVolDown();//to show on vu
 			else if (device == RaspiRadio)
+			{
 				getVolume();
+			}
+			rearrangeGui();
 			break;
 	  case volume:
 			sendVolDown();
@@ -456,7 +569,6 @@ static void down_single_click_handler(ClickRecognizerRef recognizer, void *conte
 			sendProgramDown();
 			break;
 	}
-	rearrangeGui();
 }
 //up click
 static void up_single_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -466,8 +578,16 @@ static void up_single_click_handler(ClickRecognizerRef recognizer, void *context
 	{
   	  case none:
 			mode = program;
-			sendProgramDown();
-			sendProgramUp(); //back to original position
+			if (device == Vu)
+			{
+				sendProgramDown();
+				sendProgramUp(); //back to original position
+			}
+			else if (device == RaspiRadio)
+			{
+				getStationList();
+			}
+			rearrangeGui();
 			if (accel)
 				switchOnAccel();
 			break;
@@ -478,7 +598,6 @@ static void up_single_click_handler(ClickRecognizerRef recognizer, void *context
 			sendProgramUp();
 			break;
 	}
-	rearrangeGui();
 
 }
 //misc
@@ -490,7 +609,6 @@ static void select_single_click_handler(ClickRecognizerRef recognizer, void *con
 		case volume:
 			mode = none; //just go back
 			switchOffAccel();
-			resetText();
 			break;
 		case none:
 			switchOffAccel();
@@ -505,9 +623,8 @@ static void select_single_click_handler(ClickRecognizerRef recognizer, void *con
 			break;
 	}
 	rearrangeGui();
-
 }
-
+//------------------------------------------------------------
 //provider fuer die action_bar
 static void  click_config_provider(Window * window)
 {
@@ -522,7 +639,9 @@ static void  click_config_provider(Window * window)
 	  window_single_click_subscribe(BUTTON_ID_SELECT, select_single_click_handler);//Arrows (Program)
 	  window_long_click_subscribe(BUTTON_ID_SELECT, 700, select_long_click_handler, NULL);
 }
-//war ein provider fuer das window, nutze jetzt mal actionbar
+
+//war ein provider fuer das window, nutze jetzt actionbar
+/*
 static void config_provider(Window *window) {
  // single click / repeat-on-hold config:
   window_single_click_subscribe(BUTTON_ID_BACK, back_single_click_handler); //Back
@@ -542,12 +661,16 @@ static void config_provider(Window *window) {
   // long click config:
   //window_long_click_subscribe(BUTTON_ID_SELECT, 700, select_long_click_handler, select_long_click_release_handler);
 }
-
+*/
 void show_control(void) {
   initialise_ui();
   window_set_window_handlers(s_window, (WindowHandlers) {
     .unload = handle_window_unload,
   });
+  window_set_window_handlers(menu_window,(WindowHandlers)
+		  {
+		  	  .unload = handle_menu_window_unload
+		  });
   window_stack_push(s_window, true);
   //APP_LOG(APP_LOG_LEVEL_INFO,"pushed on stack");
 
@@ -556,9 +679,11 @@ void show_control(void) {
 void hide_control(void) {
   window_stack_remove(s_window, true);
   freeArray(raspiFullStatus,RFSZahl);
+  freeArray(stationList,numberOfStations);
 }
-
+/*
 void bind_clicks(void)
 {
 	  window_set_click_config_provider(s_window, (ClickConfigProvider) config_provider);
 }
+*/
