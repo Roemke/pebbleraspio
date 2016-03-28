@@ -6,6 +6,7 @@
 #define KEY_RASPIO  2
 
 #define KEY_APPREADY 10
+#define KEY_OPTIONS 11
 
 #define KEY_POWER 116
 #define KEY_VOLUP  115

@@ -9,6 +9,7 @@
     "KEY_VU": 1,   
     "KEY_RASPIO": 2,  	
   	"KEY_APPREADY": 10,
+  	"KEY_OPTIONS" : 11,
     "KEY_POWER": 116,
     "KEY_VOLUP": 115,
     "KEY_VOLDOWN": 114,
@@ -33,7 +34,7 @@ var VERSION = "1.2";
 
 var isReady = false;
 var callbacks = []; //stack for callbacks
-var options = getOptions();
+var options;
 
 
 //convert object to object with keys
@@ -54,7 +55,8 @@ function prepareConfiguration(options) {
 function readyCallback(event) {
   isReady = true;
   var callback;
-  console.log("readyCallback 1, options: " + JSON.stringify(options) + " Type:" + typeof(options));
+  options=getOptions();
+  console.log("readyCallback done, options: " + JSON.stringify(options) + " Type:" + typeof(options));
   while (callbacks.length > 0) { //if callbacks on stack, process them
     callback = callbacks.shift();
     callback(event);
@@ -87,15 +89,15 @@ function webviewclosed(event) {
 			options.actualDevice = appKeys.KEY_VU;
 		
 		Pebble.sendAppMessage(prepareConfiguration(options), function(event) {
-		    console.log("delivered message");
-				}, logError);
+		    	console.log("delivered message");
+			}, 
+			function (event) {
+				  console.log('Unable to deliver message with transactionId='+
+              			event.data.transactionId +' ; Error is'+ event.error.message);				
+			} );
 	}	
 	//else works
 	//console.log("cancel in config");
-}
-function logError(event) {
-  console.log('Unable to deliver message with transactionId='+
-              event.data.transactionId +' ; Error is'+ event.error.message);
 }
 
 
@@ -109,8 +111,8 @@ function getOptions() {
   var options = JSON.parse(localStorage.getItem("options"));
   if (options)
   {
-	  console.log("read options from storage as object");
-	  console.log(localStorage.getItem("options"));
+	  //console.log("read options from storage as object");
+	  //console.log(localStorage.getItem("options"));
 	  //console.log("options.ip: " + options.ip);
 	  //console.log("options.accel: "  + options.accel);
   }
@@ -209,7 +211,7 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 		{
 			case "completeState" :
 			//vorsicht volumen nicht korrigiert
-			console.log("complete state with " + JSON.stringify(ansO));
+			//console.log("complete state with " + JSON.stringify(ansO));
 			 if (!ansO.result[1].values.Title)
 			 	ansO.result[1].values.Title="keine Information des Senders";
 			 send = ansO.result[1].values.Name + "|" + ansO.result[1].values.Title + "|" + ansO.result[0].values.volume ; 
@@ -222,27 +224,27 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 			  send = parseInt(ansO.result.values.volume) ; 
 			  send = (send - 50)*2;
 			  send = (send < 0) ? 0 : send;  
-			  console.log("send volume " + send );
+			  //console.log("send volume " + send );
 			  Pebble.sendAppMessage({'KEY_RASPVOLUME': send});
 			break;
 			case "volumeUp": //dann bekomme ich den aktuellen Status zurueck, diesen an pebble senden
 			  send = parseInt(ansO.result.values.volume) ; 
 			  send = (send - 50)*2;
 			  send = (send < 0) ? 0 : send;  
-			  console.log("send aktualisiertes Volume " + send );
+			  //console.log("send aktualisiertes Volume " + send );
 			  Pebble.sendAppMessage({'KEY_RASPVOLUME': send});
 			break;
 			case "volumeDown": //dann bekomme ich den aktuellen Status zurueck, diesen an pebble senden
 			  send = parseInt(ansO.result.values.volume) ; 
 			  send = (send - 50)*2;
 			  send = (send < 0) ? 0 : send;  
-			  console.log("send aktualisiertes Volume " + send );
+			  //console.log("send aktualisiertes Volume " + send );
 			  Pebble.sendAppMessage({'KEY_RASPVOLUME': send});
 			break;
 			case "liste" :
 				var stationArray = ansO.result;
 				var actualPos = parseInt(ansO.actualPos);
-				console.log("got liste with actual pos " + actualPos);
+				//console.log("got liste with actual pos " + actualPos);
 				if (stationArray.length > 0)
 				{
 					var send = stationArray[0].name;
@@ -256,7 +258,7 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 				}
 			break;
 		}
-		console.log("Send to Pebble: " + send); 
+		//console.log("Send to Pebble: " + send); 
 	}    
     //zwei interne funktionen
 	function handleCommandToRaspio(commandKey,options)
@@ -276,7 +278,7 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 			   },5000);
 			var req = new XMLHttpRequest();
 			var command = translateRaspiKey(commandKey);
-			console.log("request is http://" + options.raspip + '/radio/php/ajaxSender.php?'+command);
+			//console.log("request is http://" + options.raspip + '/radio/php/ajaxSender.php?'+command);
 			req.open('GET', 'http://' + options.raspip + '/radio/php/ajaxSender.php?'+command, true); //true async
 			req.onload = function(e) {//onload should always have state 4 ?
 			   if (req.readyState == 4 && req.status == 200) {
@@ -342,7 +344,7 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 	//and the "constructor"     
     return function(e)  {
       var payload = e.payload;
-      console.log("in eventListener mit payload " + JSON.stringify(payload ) + " stillSending is "+stillSending);
+      //console.log("in eventListener mit payload " + JSON.stringify(payload ) + " stillSending is "+stillSending);
       if (payload)// && !stillSending) //todo ?
       {
         stillSending = true;
@@ -355,25 +357,30 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
         {
           var deviceKey = payload.KEY_DEVICE;          	
        	  options.actualDevice = deviceKey;
-      	  console.log("Device now " + deviceKey);
+      	  //console.log("Device now " + deviceKey);
       	  setOptions(options);
-      	  console.log("options: " + JSON.stringify(options));
+      	  //console.log("options: " + JSON.stringify(options));
       	  stillSending = false;
         }
         else if (payload.hasOwnProperty('KEY_SWITCHSTATION'))
         {
         	options.actualStation = payload.KEY_SWITCHSTATION;
         	setOptions(options);
-        	console.log ("set options after switch station, now : " 
-        		+ JSON.stringify(options));
+        	//console.log ("set options after switch station, now : " 
+        	//	+ JSON.stringify(options));
         	if (options.actualDevice == appKeys.KEY_RASPIO)
         		handleCommandToRaspio(appKeys.KEY_SWITCHSTATION,options);
+        }
+        else if (payload.hasOwnProperty('KEY_OPTIONS'))
+        {
+        	options=getOptions();
+        	Pebble.sendAppMessage(prepareConfiguration(options));
         }
         else if (payload.KEY_CONTROL)   
         { 
           //console.log("caller of getObject was eventhandler of appmessage");
           var commandKey = payload.KEY_CONTROL;  
-          console.log("options: " + JSON.stringify(options));
+          //console.log("options: " + JSON.stringify(options));
           if (options.actualDevice == appKeys.KEY_VU)
           {          	
           	handleCommandToVu(commandKey,options);
@@ -396,12 +403,11 @@ Pebble.addEventListener('appmessage', eventListener);
   //} //eof event listener
   
 
-        
 onReady(function(event) {
   options = getOptions();
   if (! options.hasOwnProperty('vu') && ! options.hasOwnProperty('raspio'))
   {
-    Pebble.showSimpleNotificationOnPebble("First start", "Configuration missing!"); 
+    Pebble.showSimpleNotificationOnPebble("First start", "Press back if you have saved the configuration options on your smartphone!"); 
    	showConfiguration();
   }
   else 
@@ -413,3 +419,4 @@ onReady(function(event) {
   }
 });
 
+//console.log ("JS load");        

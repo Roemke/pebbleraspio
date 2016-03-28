@@ -96,7 +96,12 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     	//wenn im raspberry mode frage den status ab
     	if (device == RaspiRadio)
     		getFullStatus();
-		break;
+    	else if (device == NotSet)
+    	{
+    		APP_LOG(APP_LOG_LEVEL_INFO, "try to get the options");
+    		getOptions();
+    	}
+    	break;
     case KEY_VU:
     	 //APP_LOG(APP_LOG_LEVEL_INFO, "received message with vu %d ", (int) t->value->uint8) ;
     	vu = t->value->uint8 == 1;
@@ -160,7 +165,7 @@ static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResul
 }
 
 static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+  //APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
 
@@ -180,21 +185,6 @@ static void sendSignal(int key)
     app_message_outbox_send(); //ok laeuft pebble-js-app.js reagiert
   }
 }
-void sendPower(){sendSignal(KEY_POWER);}
-void sendVolUp(){sendSignal(KEY_VOLUP);}
-void sendVolDown(){sendSignal(KEY_VOLDOWN);}
-void sendProgramUp(){sendSignal(KEY_STATIONUP);}
-void sendProgramDown(){sendSignal(KEY_STATIONDOWN);}
-void sendOK(){sendSignal(KEY_OK);}
-void sendExit(){sendSignal(KEY_EXIT);}
-
-
-//communication with the Raspi
-void getVolume(){sendSignal(KEY_RASPVOLUME);}
-void getFullStatus(){sendSignal(KEY_RASPFULLSTATUS);}
-void getStationList(){sendSignal(KEY_RASPSTATIONLIST);}
-
-
 static void sendKeyVal(int key , int val )
 {
 	DictionaryIterator *iter;
@@ -211,6 +201,22 @@ static void sendKeyVal(int key , int val )
 		app_message_outbox_send(); //ok laeuft pebble-js-app.js reagiert
 	}
 }
+
+
+void sendPower(){sendSignal(KEY_POWER);}
+void sendVolUp(){sendSignal(KEY_VOLUP);}
+void sendVolDown(){sendSignal(KEY_VOLDOWN);}
+void sendProgramUp(){sendSignal(KEY_STATIONUP);}
+void sendProgramDown(){sendSignal(KEY_STATIONDOWN);}
+void sendOK(){sendSignal(KEY_OK);}
+void sendExit(){sendSignal(KEY_EXIT);}
+
+
+//communication with the Raspi
+void getVolume(){sendSignal(KEY_RASPVOLUME);}
+void getFullStatus(){sendSignal(KEY_RASPFULLSTATUS);}
+void getStationList(){sendSignal(KEY_RASPSTATIONLIST);}
+void getOptions(){sendKeyVal(KEY_OPTIONS,1);}
 
 //send new device to phone
 void sendNewDevice()

@@ -36,9 +36,14 @@ void handle_init(void) {
 	 * der c-teil die daten aber vergisst, muesste mir also die Daten abholen?
 	 */
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "start with device %d",device);
+	/*
 	if (device == KEY_NOTSET)
 	{
-	}
+		//warte 500 ms und hole mir dann die Optionen ab, um das device entsprechend der
+		//einstellung auf javascript-seite zu holen
+		app_timer_register(500, getOptionsFromJS,0);
+	} Nein, pruefe das, wenn ich das ready-Signal von der js-Anwendung erhalte
+	*/
 	initCommunication();
 	show_control();//creates s_window and layers
     //bind_clicks();

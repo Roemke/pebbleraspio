@@ -15,6 +15,7 @@
     "KEY_VU": 1,   
     "KEY_RASPIO": 2,
   	"KEY_APPREADY": 10,
+  	"KEY_OPTIONS" : 11,
     "KEY_POWER": 116,
     "KEY_VOLUP": 115,
     "KEY_VOLDOWN": 114,
