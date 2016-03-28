@@ -53,6 +53,7 @@ function prepareConfiguration(options) {
 
 //doc says: The watchapp has been launched and the PebbleKit JS component is now ready to receive events. 
 function readyCallback(event) {
+  console.log("readyCallback entered");
   isReady = true;
   var callback;
   options=getOptions();

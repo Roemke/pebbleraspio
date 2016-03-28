@@ -1,0 +1,8 @@
+auf der pebble time steel entwickelt
+lief mit der alten app der pebble nicht, erst absturz
+bei realloc, dann timeout bei js ready 
+die neue Pebble Time app fuehrt ein update fuer die 
+pebble durch und dann funktioniert es auch mit dem ready event
+
+Test realloc mal wieder auf 0 pointer los lassen
+und geht - mit der neuen app funktioniert es

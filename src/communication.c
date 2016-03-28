@@ -29,7 +29,12 @@ char ** string_to_array(char ** arrOfC, int nOld, int nNew, char *string)
    freeArray(arrOfC,nOld);
    if (nOld != nNew || !arrOfC )
    {
-	   arrOfC = realloc(arrOfC,nNew * sizeof(char *));
+	   //on old pebble realloc crashes if 0 pointer on new pebble not
+	   //if (arrOfC)
+		   arrOfC = realloc(arrOfC,nNew * sizeof(char *));
+	   //else
+		 //  arrOfC = malloc(nNew * sizeof(char *));
+		 //test mit Aktualisierung der alten app und verwendung der pebble time app -> geht
    }
    if (!arrOfC)
    {
