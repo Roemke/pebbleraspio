@@ -4,9 +4,11 @@ Raspberry Radio / Enigma Vu - Remote control
 
 A simple remote Control for a Radio Project on 
 Raspberry PI, works so far and the VU+ Solo Satellite Receiver. 
-Obviously you need to install the Raspberry project
+Obviously you need to install the Raspberry Radio project
 to use all parts of this app, control of Vu+ should work
 without additional hardware / software.
+
+[RasberryRadio Project auf GitHub](https://github.com/Roemke/RaspiRadio) 
 
 Controls
 Middle Button long press: switch between control of 
