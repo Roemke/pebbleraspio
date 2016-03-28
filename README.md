@@ -45,6 +45,12 @@ and down (volume).
 
 The middle button (short press) is power off and power on.
 
+![Vu Main](resources/screenshots/color/vuMain.png)
+![Vu Station](resources/screenshots/color/vuStation.png)
+![Vu Volume](resources/screenshots/color/vuVolume.png)
+
+
+
 Controlling of Station and volume is according to the control of
 the internet radio. The difference is that you see no response on
 your watch because you see the reaction on your television.

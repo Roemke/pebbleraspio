@@ -13,6 +13,7 @@ Middle Button long press: switch between control of
 VU and Raspberry internet Radio
 
 Raspberry Mode:
+----------------------------------------------
 
 ![Radio](resources/screenshots/color/radioMain.png)
 
@@ -25,37 +26,36 @@ internet. (This is done automatically every 5 Seconds)
 
 
 Upper Button: Switch to station control.
-
 ![RadioStation](resources/screenshots/color/radioStation.png)
 
 
 You will see a list of the radio stations and can go up and down. 
 The middle button selects a station. 
 To go back use the left button. 
- 
 
-Left / Back - go back one level. 
+Lower Button in Main Menu: Switch to Volume control
+![Radio Volume](resources/screenshots/color/radioVolume.png)
 
-Upper Button: Switch to station mode. You can 
-scroll through the list of stations with up and 
-down buttons on the Vu+ Solo you can see the reaction 
-on your televisions screen
+Control the Volume, up/down middle button goes back 
 
-  
-Middle / Select Button switch to Program if 
-your are in station mode.
+Vu+ Mode:
+----------------------------------------------
+On the main window you see the two controls up (station)
+and down (volume). 
 
-Lower Button. Switch to  Volume mode.
-With the up/down Buttons you can control the Volume.
-Middle Button leaves this mode (back button also leaves).
+The middle button (short press) is power off and power on.
 
+Controlling of Station and volume is according to the control of
+the internet radio. The difference is that you see no response on
+your watch because you see the reaction on your television.
+
+
+Acceleration Sensor  
+------------------------------------
 If you choose acceleration sensor in config, you can
 control the movement of volume and station by turning
 your wrist. Turn forward means down, backwards is up.
 This is somewhat experimental ...
  
-If you are not in Volume or station mode a long press
-to the select button (middle right) switch between enigmavu 
-control and raspio.
  
 
