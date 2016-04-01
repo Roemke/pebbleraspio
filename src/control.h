@@ -5,3 +5,4 @@ void bind_clicks(void);
 void rearrangeGui(void);
 void resetGui();
 void redrawStationMenu(void);
+void aktualisiereStatus();

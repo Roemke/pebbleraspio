@@ -80,7 +80,7 @@ AppTimer * timerScroll = 0;
 AppTimer * timerAktualisiereStatus = 0;
 
 
-static void aktualisiereStatus()
+void aktualisiereStatus()
 {
 	if (device == RaspiRadio)
 	{

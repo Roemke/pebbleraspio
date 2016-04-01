@@ -3,29 +3,39 @@
   "shortName": "raspio",
   "longName": "raspio",
   "companyName": "k.roemke@googlemail.com",
-  "versionCode": 1,
-  "versionLabel": "1.0",
+  "versionCode": 2,
+  "versionLabel": "1.1",
   "sdkVersion": "3",
   "targetPlatforms": ["aplite", "basalt"],
   "watchapp": {
     "watchface": false
   },
   "appKeys": {
+	"KEY_NOTSET": 0,
+    "KEY_VU": 1,   
+    "KEY_RASPIO": 2,
+  	"KEY_APPREADY": 10,
+  	"KEY_OPTIONS" : 11,
     "KEY_POWER": 116,
     "KEY_VOLUP": 115,
     "KEY_VOLDOWN": 114,
-    "KEY_ARRUP": 103,
-    "KEY_ARRDOWN": 108,
+    "KEY_STATIONUP": 103,
+    "KEY_STATIONDOWN": 108,
     "KEY_OK": 352,
     "KEY_EXIT": 1,
     "KEY_INFO": 358,
     "KEY_CONTROL": 1000,
     "KEY_VUIP": 1001,    
     "KEY_ACCEL": 1002,
-    "KEY_RASPIO": 1003,
-    "KEY_VU": 1004,   
     "KEY_RASPIP": 1005,
-    "KEY_DEVICE" : 1006
+    "KEY_DEVICE" : 1006,
+    "KEY_RASPVOLUME" : 1100,
+    "KEY_RASPFULLSTATUS" : 1101,
+    "KEY_RASPSTATIONLIST" :   1102,
+    "KEY_RASPACTUALSTAION" : 1103,
+    "KEY_SWITCHSTATION" : 1104,
+    "KEY_RASPIPLAY":  1105,
+    "KEY_RASPIPAUSE": 1106
   },
   "capabilities": [
     "configurable"
@@ -33,18 +43,43 @@
   "resources": {
     "media": [
       {
-        "file": "images/25px-power.png",
-        "name": "pngPower",
-        "type": "png"
-      },
-      {
         "file": "images/25px-Vista-kmixdocked_mute.png",
         "name": "pngVolume",
         "type": "png"
       },
       {
-        "file": "images/25px-updown.png",
-        "name": "pngUpDown",
+        "file": "images/25px-power.png",
+        "name": "pngPower",
+        "type": "png"
+      },
+      {
+        "file": "images/25px-Station.png",
+        "name": "pngStation",
+        "type": "png"
+      },
+      {
+        "file": "images/25px-UpArrow.png",
+        "name": "pngUpArrow",
+        "type": "png"
+      },
+      {
+        "file": "images/25px-DownArrow.png",
+        "name": "pngDownArrow",
+        "type": "png"
+      },
+      {
+        "file": "images/25px-Ok.png",
+        "name": "pngOk",
+        "type": "png"
+      },
+      {
+        "file": "images/40px-Station.png",
+        "name": "pngStation40",
+        "type": "png"
+      },
+      {
+        "file": "images/40px-Volume.png",
+        "name": "pngVolume40",
         "type": "png"
       }
     ]

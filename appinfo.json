@@ -3,8 +3,8 @@
   "shortName": "raspio",
   "longName": "raspio",
   "companyName": "k.roemke@googlemail.com",
-  "versionCode": 1,
-  "versionLabel": "1.0",
+  "versionCode": 3,
+  "versionLabel": "1.2",
   "sdkVersion": "3",
   "targetPlatforms": ["aplite", "basalt"],
   "watchapp": {

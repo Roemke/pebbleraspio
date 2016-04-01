@@ -98,13 +98,15 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	switch (t->key)
     {
 	case KEY_APPREADY:
-    	 //APP_LOG(APP_LOG_LEVEL_INFO, "received message appready have device %d", (int) device) ;
+    	APP_LOG(APP_LOG_LEVEL_INFO, "received message appready have device %d", (int) device) ;
     	//wenn im raspberry mode frage den status ab
     	if (device == RaspiRadio) //klappt beim installieren nicht, sonst ok
     	{
     		raspiPlay = false;
     		raspiSwitchPlay();//pause/play
-    		getFullStatus();
+    		//getFullStatus();//trotz ready null iterator  beim Start sehr häufig Versuche es daher lieber nach
+    		// 500 ms und starte aktualisiereStatus - diese erzeugt nach weiteren 5 sek die Abfrage
+    		app_timer_register(500,aktualisiereStatus,0);
     	}
     	else if (device == NotSet)
     	{
