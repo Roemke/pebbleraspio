@@ -23,7 +23,7 @@ void handle_init(void) {
 	else
 		raspio = false;
   //intialisieren
-	raspiFullStatus = string_to_array(0,0,RFSZahl,"?| | ");
+	raspiFullStatus = string_to_array(0,0,RFSZahl,"?| | | ");
 	generateStationMenu("...waiting...");
 	if (raspio)
 		device = RaspiRadio;

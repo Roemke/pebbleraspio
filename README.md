@@ -21,10 +21,9 @@ Raspberry Mode:
 
 On the main screen you see the actual station and the 
 additional information which comes from the internet 
-radio station. 
+radio station. This information is updated every 5 seconds
 
-Middle button: Actualize the Information from the 
-internet. (This is done automatically every 5 Seconds)
+Middle button: Switch pause / play.
 
 
 Upper Button: Switch to station control.

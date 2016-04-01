@@ -27,7 +27,9 @@
     "KEY_RASPFULLSTATUS" : 1101,
     "KEY_RASPSTATIONLIST" :  1102,
     "KEY_RASPACTUALSTAION" : 1103,
-    "KEY_SWITCHSTATION" : 1104
+    "KEY_SWITCHSTATION" : 1104,
+    "KEY_RASPIPLAY":  1105,
+    "KEY_RASPIPAUSE": 1106    
   };
 
 var VERSION = "1.2";
@@ -169,6 +171,12 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
     		case appKeys.KEY_RASPVOLUME:
     			result += "status";
     		break;
+    		case appKeys.KEY_RASPIPLAY:
+    			result+='play';
+    		break;
+    		case appKeys.KEY_RASPIPAUSE:		
+    			result +='pause';
+    		break;	
     		case appKeys.KEY_RASPFULLSTATUS:
     			result += "completeState";
     		break;
@@ -213,10 +221,14 @@ var eventListener = (function (e) //called if appmessage event - pebble is sendi
 			case "completeState" :
 			//vorsicht volumen nicht korrigiert
 			//console.log("complete state with " + JSON.stringify(ansO));
+			var play =  (ansO.result[0].values.state=='play') ? 1 : 0;
+			 
 			 if (!ansO.result[1].values.Title)
 			 	ansO.result[1].values.Title="keine Information des Senders";
-			 send = ansO.result[1].values.Name + "|" + ansO.result[1].values.Title + "|" + ansO.result[0].values.volume ; 
+			 send = ansO.result[1].values.Name + "|" + ansO.result[1].values.Title 
+			      + "|" + ansO.result[0].values.volume + "|" + play ; 
 			 //wieso hab ich die Antwort so kompliziert gemacht?
+			   //console.log("send full: " + send);
 			   Pebble.sendAppMessage({'KEY_RASPFULLSTATUS': send});
 			break;
 			case "status" : //dann nur volume
@@ -414,7 +426,9 @@ onReady(function(event) {
   else 
   {
   	 if (options.raspio)
-  	 	options.actualDevice = appKeys.KEY_RASPIO;
+  	 {
+  	 	options.actualDevice = appKeys.KEY_RASPIO;  	 	
+  	 }
   	 else
   	 	options.actualDevice = appKeys.KEY_VU;
   }

@@ -29,6 +29,8 @@
 #define KEY_RASPSTATIONLIST  1102
 #define KEY_RASPACTUALSTAION 1103
 #define KEY_SWITCHSTATION 1104
+#define KEY_RASPIPLAY 1105
+#define KEY_RASPIPAUSE 1106
 
 
 
@@ -36,6 +38,7 @@
 extern bool accel; //type bool is defined in pebble.h, acceleration on
 extern bool vu; // vu control on
 extern bool raspio; //raspberry control on
+extern bool raspiPlay;
 enum Devices
 {
   Vu 			= KEY_VU,
@@ -46,7 +49,7 @@ enum Devices
 extern int device;
 extern char textVolRaspi[];
 extern char ** raspiFullStatus;
-#define RFSZahl 3
+#define RFSZahl 4
 extern int numberOfStations;
 extern int actualStation; //0 based number of actual station in list
 extern char **stationList;

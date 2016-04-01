@@ -12,6 +12,7 @@ void getVolume();
 void getFullStatus();
 void getStationList();
 void getOptions();
+void raspiSwitchPlay();//pause/play
 void switchStation();
 void freeArray(char **arr,int n);
 char ** string_to_array(char ** arrOfC, int nOld, int nNew, char *string);

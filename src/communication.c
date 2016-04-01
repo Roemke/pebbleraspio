@@ -5,6 +5,7 @@
 
 int numberOfStations = 0;
 char **stationList = 0;
+bool raspiPlay = true;
 
 //free arrays, intended to use on customHours and customRels
 void freeArray(char **arr,int n)
@@ -99,11 +100,15 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	case KEY_APPREADY:
     	 //APP_LOG(APP_LOG_LEVEL_INFO, "received message appready have device %d", (int) device) ;
     	//wenn im raspberry mode frage den status ab
-    	if (device == RaspiRadio)
+    	if (device == RaspiRadio) //klappt beim installieren nicht, sonst ok
+    	{
+    		raspiPlay = false;
+    		raspiSwitchPlay();//pause/play
     		getFullStatus();
+    	}
     	else if (device == NotSet)
     	{
-    		APP_LOG(APP_LOG_LEVEL_INFO, "try to get the options");
+    		//APP_LOG(APP_LOG_LEVEL_INFO, "try to get the options");
     		getOptions();
     	}
     	break;
@@ -137,6 +142,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     case KEY_RASPFULLSTATUS:
     	 //APP_LOG(APP_LOG_LEVEL_INFO, "received fullstatus from pi  %s ", (char *) t->value->cstring) ;
     	raspiFullStatus = string_to_array(raspiFullStatus,RFSZahl,RFSZahl,t->value->cstring);
+    	raspiPlay = (raspiFullStatus[3][0] == '1');
+    	//APP_LOG(APP_LOG_LEVEL_INFO,"fullstatus 3 is %s" , raspiFullStatus[3]);
     	rearrangeGui();
     	break;
     case KEY_RASPSTATIONLIST:
@@ -222,6 +229,14 @@ void getVolume(){sendSignal(KEY_RASPVOLUME);}
 void getFullStatus(){sendSignal(KEY_RASPFULLSTATUS);}
 void getStationList(){sendSignal(KEY_RASPSTATIONLIST);}
 void getOptions(){sendKeyVal(KEY_OPTIONS,1);}
+void raspiSwitchPlay()
+{
+	int key = raspiPlay ? KEY_RASPIPAUSE : KEY_RASPIPLAY ;
+	sendSignal(key);
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "send key %d", key);
+	raspiPlay = !raspiPlay;
+}
+
 
 //send new device to phone
 void sendNewDevice()
@@ -231,6 +246,7 @@ void sendNewDevice()
 //switch station on raspi
 void switchStation()
 {
+	//APP_LOG(APP_LOG_LEVEL_INFO,"switch station to %d",actualStation);
 	sendKeyVal(KEY_SWITCHSTATION,actualStation);
 }
 

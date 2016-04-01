@@ -33,7 +33,9 @@
     "KEY_RASPFULLSTATUS" : 1101,
     "KEY_RASPSTATIONLIST" :   1102,
     "KEY_RASPACTUALSTAION" : 1103,
-    "KEY_SWITCHSTATION" : 1104
+    "KEY_SWITCHSTATION" : 1104,
+    "KEY_RASPIPLAY":  1105,
+    "KEY_RASPIPAUSE": 1106
   },
   "capabilities": [
     "configurable"

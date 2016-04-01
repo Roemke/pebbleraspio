@@ -604,6 +604,7 @@ static void up_single_click_handler(ClickRecognizerRef recognizer, void *context
 static void select_single_click_handler(ClickRecognizerRef recognizer, void *context) {
   //... called on single click ...
   //Window *window = (Window *)context;
+	//APP_LOG(APP_LOG_LEVEL_INFO,"select click with raspio=%d and vu=%d",raspio,vu);;
 	switch ( mode)
 	{
 		case volume:
@@ -615,7 +616,7 @@ static void select_single_click_handler(ClickRecognizerRef recognizer, void *con
 			if (device == Vu)
 				sendPower();
 			else if (device == RaspiRadio)
-				getFullStatus(); //aktualisieren der Anzeige
+				raspiSwitchPlay();
 			break;
 		case program:
 			switchOffAccel();
